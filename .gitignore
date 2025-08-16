@@ -1,0 +1,62 @@
+# node / pnpm
+node_modules/
+.pnpm-store/
+pnpm-debug.log
+npm-debug.log
+dist/
+build/
+.tmp/
+.cache/
+
+# Vite / React
+apps/web/dist/
+apps/web/.vite/
+apps/web/coverage/
+
+# NestJS
+apps/api/dist/
+apps/api/.tsbuildinfo
+
+# Prisma
+prisma/.env
+apps/api/prisma/.env
+
+# Env files
+.env
+*.local
+*.env
+*.env.*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker data
+docker/**/data/
+docker/**/logs/
+
+# Turbo / Nx (на будущее)
+.turbo/
+
+
+apps/web/public/hero/*
+apps/web/public/icons/*
+apps/web/public/avatars/*
+# Visual Studio files
+.vs/
+*.vsidx
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Logs
+*.log
+
+# Env files
+.env

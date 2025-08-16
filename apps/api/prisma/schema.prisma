@@ -1,0 +1,84 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+model User {
+  id                  String     @id @default(cuid())
+  tgId                String     @unique
+  username    String?         // @username из Telegram
+  displayName String?         // красивое имя: first_name + last_name или username
+  photoUrl    String?  
+  avatarKey           String?
+  xp                  Int        @default(0)
+  level               Int        @default(1)
+  power               Int        @default(0)
+  createdAt           DateTime   @default(now())
+  mine                MineState?
+  raidEnergy          Int        @default(5)
+  raidEnergyUpdatedAt DateTime   @default(now())
+  hero                Hero?
+}
+
+model Hero {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  name      String? // можно дублировать displayName или отдельное поле
+  avatarKey String? // ключ выбранного аватара (как сейчас)
+  skinKey   String? // будущая “одежда”
+  level     Int     @default(1)
+  xp        Int     @default(0)
+
+  characterKey String?     // 'warrior' | 'rogue' (или свои ключи)
+  characterSelectedAt DateTime?
+
+  gender           String?   // 'male' | 'female'
+  genderSelectedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model MineState {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  ratePerHour Int       @default(100)
+  buffer      Int       @default(0)
+  bufferCap   Int       @default(1000)
+  warehouse   Int       @default(0)
+  shieldUntil DateTime?
+  drillLvl    Int       @default(1)
+  shiftLvl    Int       @default(1)
+  storageLvl  Int       @default(1)
+  user        User      @relation(fields: [userId], references: [id])
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+}
+
+model Raid {
+  id         String   @id @default(cuid())
+  attackerId String
+  defenderId String
+  stolen     Int      @default(0)
+  result     String
+  log        Json
+  createdAt  DateTime @default(now())
+
+  @@index([attackerId])
+  @@index([defenderId])
+}
+
+model RaidLog {
+  id         String   @id @default(cuid())
+  attackerId String
+  targetId   String
+  amount     Int
+  createdAt  DateTime @default(now())
+
+  @@index([attackerId, createdAt])
+  @@index([targetId, createdAt])
+}

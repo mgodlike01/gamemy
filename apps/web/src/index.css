@@ -1,0 +1,18 @@
+html, body, #root {
+    height: 100%;
+    overflow: hidden; /* ВООБЩЕ не скроллим страницу */
+}
+
+:root {
+    --topbar-h: 56px; /* высота шапки */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+    margin: 0;
+    background: #0f1216;
+    color: #e9edf1;
+    overscroll-behavior: none; /* без «перетяжки» на мобилках */
+    -webkit-overflow-scrolling: auto; /* убираем инерцию iOS */
+}

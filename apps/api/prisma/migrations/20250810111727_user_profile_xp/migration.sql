@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "public"."User" ADD COLUMN     "avatarKey" TEXT,
+ADD COLUMN     "level" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "xp" INTEGER NOT NULL DEFAULT 0;

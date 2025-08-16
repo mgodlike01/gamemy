@@ -1,0 +1,15 @@
+{
+  "name": "miner-syndicate",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:web": "pnpm --filter web dev"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3"
+  }
+}
