@@ -200,6 +200,7 @@ export function DungeonScene({
           objectFit: "cover",
           zIndex: 0,
           pointerEvents: "none",
+          //top:"-115px",
         }}
       />
 
@@ -218,7 +219,8 @@ export function DungeonScene({
             placeItems: "center",
             pointerEvents: "none",
             outline: debugHeroBox ? "1px dashed rgba(255,0,0,.6)" : "none",
-            outlineOffset: 2,
+                      outlineOffset: 2,
+          top:"345px",
           }}
         >
           <div
@@ -351,8 +353,8 @@ export function DungeonScene({
           style={{
             position: "absolute",
             inset: 0,
-            width: "100%",
-            height: "100%",
+            width: "1px",
+            height: "1px",
             objectFit: "cover",
             zIndex: 3,
             pointerEvents: "none",
