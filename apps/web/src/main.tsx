@@ -6,20 +6,26 @@ import {
     Route,
     useLocation,
     useNavigate,
+    type Location,
 } from "react-router-dom";
+
 import { ensureAuth } from "./shared/api";
 
 // страницы
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
-// Если этих страниц нет — просто удали импорты и роуты ниже
-// import Mine from "./pages/Mine";
-// import Raids from "./pages/Raids";
 
+// модалка
 import ProfileModal from "./components/ProfileModal";
 
+/**
+ * Как открыть профиль как модалку:
+ *   navigate('/profile', { state: { modal: true, backgroundLocation: location } })
+ *   или <Link to="/profile" state={{ modal:true, backgroundLocation: location }} />
+ *
+ * Прямой переход на /profile без state.modal — покажет полную страницу.
+ */
 async function boot() {
-    // гарантируем токен (Telegram/DEV)
     await ensureAuth();
 
     function AppRoutes() {
@@ -28,27 +34,32 @@ async function boot() {
             | { modal?: boolean; backgroundLocation?: Location }
             | undefined;
 
-        // фон для модалки: если пришли со state.modal === true
-        const background = state?.modal && state.backgroundLocation
-            ? state.backgroundLocation
-            : location;
+        const background =
+            state?.modal && state.backgroundLocation ? state.backgroundLocation : location;
 
         const navigate = useNavigate();
+        const onClose = () => {
+            // если открывали модалкой — вернёмся ровно туда, откуда пришли
+            if (state?.backgroundLocation) {
+                navigate(state.backgroundLocation, { replace: true });
+            } else {
+                // если открыли /profile напрямую (без modal-state)
+                navigate("/home", { replace: true });
+            }
+        };
 
         return (
             <>
-                {/* Основной слой */}
+                {/* Фоновый слой */}
                 <Routes location={background}>
                     <Route path="/" element={<Home />} />
                     <Route path="/home" element={<Home />} />
-                    {/* <Route path="/mine" element={<Mine />} />
-          <Route path="/raids" element={<Raids />} /> */}
                     <Route path="/profile" element={<Profile />} />
                 </Routes>
 
-                {/* Модалка поверх (только если пришли через Link с state.modal) */}
+                {/* Модалка поверх */}
                 {state?.modal && (
-                    <ProfileModal onClose={() => navigate(-1)}>
+                    <ProfileModal onClose={onClose}>
                         <Profile />
                     </ProfileModal>
                 )}

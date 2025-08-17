@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { IconTile } from '../components/IconTile';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useProfile } from '../shared/useProfile';
 import { api } from '../shared/api';
 import { DungeonScene } from '../components/DungeonScene';
@@ -51,7 +51,8 @@ function useTelegramSafeTop() {
 }
 
 export default function Home() {
-  const nav = useNavigate();
+    const nav = useNavigate();
+    const location = useLocation();
   const { profile, reload, loading } = useProfile();
 
   // ваши идеальные размеры сцены
@@ -234,7 +235,9 @@ export default function Home() {
           /** ЛЕВЫЙ ВЕРХ — аватар/имя, кликабельно в профиль */
           topLeft={
             <div
-              onClick={() => nav('/profile')}
+                  onClick={() => nav('/profile', { state: { modal: true, backgroundLocation: location } })}
+
+
               style={{
                 display: 'flex',
                 flexDirection: 'column',

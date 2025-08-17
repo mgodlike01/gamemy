@@ -95,15 +95,6 @@ export default function ProfilePage() {
         <div className="card">
           <Progress xp={profile.xp} level={profile.level} />
         </div>
-
-        
-
-        {/* Модалка ника */}
-        <NicknameModal
-          open={nickOpen || (!profile.displayName)}
-          initial={profile.displayName || ''}
-          onSubmit={async (nick) => { await setNickname(nick); setNickOpen(false); }}
-        />
       </div>
     </>
   );

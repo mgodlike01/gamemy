@@ -38,7 +38,7 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
     return (
         <Link
             to="/profile"
-            state={{ background: location }} // сохраняем предыдущее место для модалки
+            state={{ backgroundlocation: location , modal: true,}} // сохраняем предыдущее место для модалки
             style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}
         >
             <img

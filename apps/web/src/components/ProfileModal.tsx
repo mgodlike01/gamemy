@@ -1,60 +1,72 @@
-import React from 'react';
-import Profile from '../pages/Profile';
+п»їimport React, { useEffect } from "react";
+import ReactDOM from "react-dom";
 
 type Props = {
-    open: boolean;
     onClose: () => void;
+    children: React.ReactNode;
 };
 
-export default function ProfileModal({ open, onClose }: Props) {
-    if (!open) return null;
+export default function ProfileModal({ onClose, children }: Props) {
+    // Р—Р°РєСЂС‹С‚РёРµ РїРѕ ESC
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [onClose]);
 
-    return (
+    const modal = (
         <div
-            onClick={onClose}
+            // РћРІРµСЂР»РµР№ В«РІС‹С€Рµ РІСЃРµС…В»
             style={{
-                position: 'fixed', inset: 0, zIndex: 9999,
-                background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(2px)',
-                display: 'grid', placeItems: 'center',
+                position: "fixed",
+                inset: 0,
+                zIndex: 9999,
+                background: "rgba(0,0,0,0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 16,
             }}
+            onClick={onClose}
         >
             <div
-                onClick={(e) => e.stopPropagation()}
                 style={{
-                    width: 'min(640px, 94vw)',
-                    height: 'min(86vh, 720px)',
+                    width: "100%",
+                    maxWidth: 520,
+                    maxHeight: "90vh",
+                    overflow: "auto",
+                    background: "var(--tg-theme-bg-color, #fff)",
+                    color: "var(--tg-theme-text-color, #111)",
                     borderRadius: 16,
-                    background: 'rgba(18, 24, 38, .96)',
-                    border: '1px solid rgba(255,255,255,.1)',
-                    overflow: 'hidden',
-                    boxShadow: '0 20px 60px rgba(0,0,0,.45)',
-                    display: 'flex', flexDirection: 'column',
+                    boxShadow: "0 12px 40px rgba(0,0,0,.25)",
+                    padding: 16,
                 }}
+                onClick={(e) => e.stopPropagation()}
             >
-                {/* Шапка модалки */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,.08)'
-                }}>
-                    <div style={{ fontWeight: 800, letterSpacing: .5 }}>Профиль</div>
+                {/* РљРЅРѕРїРєР° Р·Р°РєСЂС‹С‚РёСЏ */}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                     <button
                         onClick={onClose}
                         style={{
-                            border: '1px solid rgba(255,255,255,.18)',
-                            background: 'rgba(255,255,255,.07)',
-                            color: '#fff', borderRadius: 8, padding: '6px 10px',
-                            fontWeight: 700, cursor: 'pointer'
+                            border: "none",
+                            background: "transparent",
+                            fontSize: 20,
+                            lineHeight: 1,
+                            cursor: "pointer",
                         }}
+                        aria-label="Close"
+                        title="Close"
                     >
-                        Закрыть
+                        вњ•
                     </button>
                 </div>
-
-                {/* Контент профиля */}
-                <div style={{ flex: 1, overflow: 'auto' }}>
-                    <Profile />
-                </div>
+                {children}
             </div>
         </div>
     );
+
+    const root = document.body;
+    return ReactDOM.createPortal(modal, root);
 }
