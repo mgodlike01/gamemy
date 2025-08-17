@@ -37,7 +37,7 @@ export default function ProfileModal({ onClose, children }: Props) {
                     maxWidth: 520,
                     maxHeight: "90vh",
                     overflow: "auto",
-                    background: "var(--tg-theme-bg-color, #fff)",
+                    background: "rgba(69,30,30,0.55)",
                     color: "var(--tg-theme-text-color, #111)",
                     borderRadius: 16,
                     boxShadow: "0 12px 40px rgba(0,0,0,.25)",

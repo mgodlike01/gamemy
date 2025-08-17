@@ -17,6 +17,8 @@ import Profile from "./pages/Profile";
 
 // модалка
 import ProfileModal from "./components/ProfileModal";
+import Mine from "./pages/Mine";
+import Raids from "./pages/Raids";
 
 /**
  * Как открыть профиль как модалку:
@@ -55,6 +57,8 @@ async function boot() {
                     <Route path="/" element={<Home />} />
                     <Route path="/home" element={<Home />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/raids" element={<Raids />} />
+                    <Route path="/mine" element={<Mine />} />
                 </Routes>
 
                 {/* Модалка поверх */}
