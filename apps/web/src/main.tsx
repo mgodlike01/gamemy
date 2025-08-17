@@ -1,49 +1,53 @@
 import './styles/tg.css';
-import React, { useState } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ProfileButton } from './components/ProfileButton';
-import { createBrowserRouter, RouterProvider, Link, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+
 import Mine from './pages/Mine';
 import Raids from './pages/Raids';
 import ProfilePage from './pages/Profile';
 import Home from './pages/Home';
 
-
-// ↓ добавляем хук профиля и модалку ника
-import { useProfile } from './shared/useProfile';
-import { NicknameModal } from './components/NicknameModal';
+import { ensureAuth } from './shared/api';
 
 function Layout() {
-  return (
-    <div style={{ maxWidth: 520, margin: '0 auto' }}>
-      <Outlet />
-    </div>
-  );
+    return (
+        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+            <Outlet />
+        </div>
+    );
 }
 
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Layout />,
-    children: [
-      { index: true, element: <Home /> },        // ← теперь главная
-      { path: 'home', element: <Home /> },       // ← прямой маршрут
-      { path: 'mine', element: <Mine /> },
-      { path: 'raids', element: <Raids /> },
-      { path: 'profile', element: <ProfilePage /> }, // если есть
-      { path: '*', element: <Home /> },          // ← на всякий случай
-    ],
-  },
+    {
+        path: '/',
+        element: <Layout />,
+        children: [
+            { index: true, element: <Home /> },
+            { path: 'home', element: <Home /> },
+            { path: 'mine', element: <Mine /> },
+            { path: 'raids', element: <Raids /> },
+            { path: 'profile', element: <ProfilePage /> },
+            { path: '*', element: <Home /> },
+        ],
+    },
 ]);
 
+// Telegram UI
 const tg = (window as any)?.Telegram?.WebApp;
 try {
-  tg?.ready();
-  tg?.expand(); // чтобы занять всю высоту
-} catch {}
+    tg?.ready();
+    tg?.expand();
+} catch { }
+
+async function boot() {
+    await ensureAuth();
+    // можно не ждать, UI всё равно отрендерится
+}
+boot();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>
+    <React.StrictMode>
+        <RouterProvider router={router} />
+    </React.StrictMode>
 );

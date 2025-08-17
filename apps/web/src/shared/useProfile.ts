@@ -1,19 +1,16 @@
-// apps/web/src/shared/useProfile.ts
 import { useCallback, useEffect, useState } from 'react';
-import { api, authByTelegram } from './api';
-import { api, ensureAuth } from "../shared/api";
+import { api, ensureAuth } from './api';
 
 export type Profile = {
     id: string;
     tgId: string;
     username?: string | null;
-    displayName?: string | null;   // << добавили
-    photoUrl?: string | null;      // << добавили
+    displayName?: string | null;
+    photoUrl?: string | null;
     level?: number;
     xp?: number;
-    gender?: 'male'|'female'|null;
-    hero?: { gender?: 'male'|'female'|null } | null;
-    // ...прочие ваши пол€
+    gender?: 'male' | 'female' | null;
+    hero?: { gender?: 'male' | 'female' | null } | null;
 };
 
 export function useProfile() {
@@ -23,13 +20,12 @@ export function useProfile() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            // если нет токена Ч авторизуемс€ через Telegram
-            const hasToken = !!localStorage.getItem('jwt');
-            if (!hasToken) {
-                await authByTelegram();
-            }
+            await ensureAuth();
             const { data } = await api.get('/auth/whoami');
             setProfile(data?.user ?? null);
+        } catch (e) {
+            console.error('[useProfile] whoami fail:', e);
+            setProfile(null);
         } finally {
             setLoading(false);
         }
@@ -37,9 +33,8 @@ export function useProfile() {
 
     useEffect(() => { load(); }, [load]);
 
-    // опционально: методы редактировани€ ника/аватара можно оставить пустыми/заглушкой
-    const setNickname = async (_nick: string) => { };
-    const setAvatar = async (_key: string) => { };
+    const setNickname = async (_nick: string) => { /* реализаци€ позже */ };
+    const setAvatar = async (_key: string) => { /* реализаци€ позже */ };
     const reload = load;
 
     return { profile, loading, setNickname, setAvatar, reload };

@@ -9,6 +9,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { useMine } from '../shared/useMine';
 import { HeroHeader } from '../components/HeroHeader';
 import { SafeStage } from '../shared/SafeStage';
+import { logout } from '../shared/api';
 
 /** безопасный отступ под шапку Telegram + вырезы */
 function useTelegramSafeTop() {
@@ -270,7 +271,23 @@ export default function Home() {
             >
               <HudItem icon={energyIcon} text={`${energy} / ${energyMax}`} />
               <HudItem icon={coinIcon} text={coins.toLocaleString()} />
-              <HudItem icon={gemIcon} text={String(gems)} />
+                  <HudItem icon={gemIcon} text={String(gems)} />
+                  <button
+                      onClick={async () => {
+                          await logout();
+                          // Можно сразу дернуть повторную загрузку профиля:
+                          // await reload();
+                      }}
+                      style={{
+                          padding: '10px 14px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          background: 'rgba(255,255,255,0.06)',
+                          color: '#fff',
+                      }}
+                  >
+                      Сбросить вход
+                  </button>
             </div>
           }
 
