@@ -15,4 +15,5 @@ body {
     color: #e9edf1;
     overscroll-behavior: none; /* без «перетяжки» на мобилках */
     -webkit-overflow-scrolling: auto; /* убираем инерцию iOS */
+
 }

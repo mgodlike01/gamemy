@@ -210,7 +210,7 @@ export default function Home() {
         {booting && <LoadingScreen progress={progress} />}
 
         <DungeonScene
-          bg="/scenes/dungeon_bg.png"
+          bg="/scenes/home_bg.png"
           fg="/scenes/dungeon_fg.png"
 
           /** передаём слои героя */
@@ -230,7 +230,9 @@ export default function Home() {
           /** расположение боковых колонок */
           sideAlign="middle"
           sideLiftPx={165}
-          bottomLiftPx={36}
+                  bottomLiftPx={36}
+                  heroOffsetY={-102}   // вверх
+                  
 
           /** ЛЕВЫЙ ВЕРХ — аватар/имя, кликабельно в профиль */
           topLeft={
@@ -295,57 +297,61 @@ export default function Home() {
           }
 
           /** ЛЕВАЯ КОЛОНКА */
-          left={
-            <>
-              <DungeonSmartDungeonTile />
-              <IconTile title="КВЕСТЫ" icon="/icons/quests.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-              <IconTile title="КЛАНЫ"  icon="/icons/clans.png"  variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-            </>
-          }
+                  left={
+                      <>
 
-          /** ПРАВАЯ КОЛОНКА */
-          right={
-            <>
-              <IconTile title="ЛИДЕРЫ" icon="/icons/leaderboard.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-              <IconTile title="МАГАЗИН" icon="/icons/shop.png"        variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase badge="!" />
-              <IconTile title="БОССЫ"   icon="/icons/boss.png"        variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-            </>
-          }
+                          <IconTile title="КВЕСТЫ" icon="/icons/quests.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
+                          <IconTile
+                              title="Инвентарь"
+                              icon="/icons/inventory.png"
+                              variant="compact"
+                              iconSize="70px"
+                              labelSize="clamp(11px,3vw,13px)"
+                              labelOffsetY={-4}
+                              uppercase
+                              onClick={() => nav('/profile')}
+                          />
+                          <IconTile title="БОССЫ" icon="/icons/boss.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
+                      </>
+                  }
 
-          /** НИЖНИЙ РЯД */
-          bottomRow={[
-            <IconTile
-              key="home"
-              title="Главная"
-              icon="/icons/home.png"
-              variant="large"
-              labelPosition="below"
-              iconSize="48px"
-              floatIdle={false}
-              onClick={() => nav('/home')}
-            />,
-            <IconTile
-              key="raids"
-              title="Рейды"
-              icon="/icons/raids.png"
-              variant="large"
-              labelPosition="below"
-              iconSize="48px"
-              floatIdle={false}
-              onClick={() => nav('/raids')}
-            />,
-            <IconTile
-              key="inv"
-              title="Инвентарь"
-              icon="/icons/inventory.png"
-              variant="large"
-              labelPosition="below"
-              iconSize="48px"
-              floatIdle={false}
-              onClick={() => nav('/profile')}
-            />,
-          ]}
-        />
+                  /** ПРАВАЯ КОЛОНКА */
+                  right={
+                      <>
+                          <IconTile title="МАГАЗИН" icon="/icons/shop.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase badge="!" />
+                          <IconTile title="ЛИДЕРЫ" icon="/icons/leaderboard.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
+                          <IconTile title="КЛАНЫ" icon="/icons/clans.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
+
+
+                      </>
+                  }
+
+                  /** НИЖНИЙ РЯД */
+                  bottomRow={[
+                      <IconTile
+                          key="home"
+                          title="Главная"
+                          icon="/icons/home.png"
+                          variant="large"
+                          labelPosition="below"
+                          iconSize="48px"
+                          floatIdle={false}
+                          onClick={() => nav('/home')}
+                      />,
+                      <DungeonSmartDungeonTile key="dungeon" />,
+                      <IconTile
+                          key="raids"
+                          title="Рейды"
+                          icon="/icons/raids.png"
+                          variant="large"
+                          labelPosition="below"
+                          iconSize="48px"
+                          floatIdle={false}
+                          onClick={() => nav('/raids')}
+                      />,
+
+                  ]}
+              />
 
         {/* модалка выбора пола (если не выбран) */}
         <GenderSelectModal
@@ -399,120 +405,122 @@ function DungeonSmartDungeonTile() {
     setManual((prev) => (prev === null ? true : !prev));
   };
 
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <IconTile
-        title="ПОДЗЕМЕЛЬЕ"
-        icon="/icons/dungeon.png"
-        variant="compact"
-        iconSize="50px"
-        labelSize="clamp(11px,3vw,13px)"
-        labelOffsetY={-4}
-        uppercase
-        floatIdle={false}
-        onClick={() => nav('/mine')}
-      />
+    return (
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+            <IconTile
+                title="ПОДЗЕМЕЛЬЕ"
+                icon="/icons/dungeon.png"
+                variant="compact"
+                iconSize="50px"
+                labelSize="clamp(11px,3vw,13px)"
+                labelOffsetY={-4}
+                uppercase
+                floatIdle={false}
+                onClick={() => nav('/mine')}
+            />
 
-      {/* кнопка-стрелка */}
-      <button
-        onClick={toggle}
-        aria-label="Свернуть/развернуть ресурсы"
-        style={{
-          position: 'absolute',
-          top: '50%',
-          right: 25,
-          transform: 'translateY(-50%)',
-          width: 26,
-          height: 26,
-          borderRadius: 999,
-          border: '1px solid rgba(255,255,255,.25)',
-          background: 'rgba(0,0,0,.38)',
-          display: 'grid',
-          placeItems: 'center',
-          cursor: 'pointer',
-          zIndex: 3,
-          padding: 0,
-        }}
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 12 12"
-          style={{
-            transform: resOpen ? 'rotate(180deg)' : 'rotate(0deg)', // закрыто ←, открыто →
-            transition: 'transform .18s ease',
-            display: 'block',
-          }}
-        >
-          <path
-            d="M4 2 L8 6 L4 10"
-            fill="none"
-            stroke="#fff"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+            {/* кнопка-стрелка */}
+            <button
+                onClick={toggle}
+                aria-label="Свернуть/развернуть ресурсы"
+                style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: 25,
+                    transform: 'translateY(-50%)',
+                    width: 26,
+                    height: 26,
+                    borderRadius: 999,
+                    border: '1px solid rgba(255,255,255,.25)',
+                    background: 'rgba(0,0,0,.38)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: 'pointer',
+                    zIndex: 3,
+                    padding: 0,
+                }}
+            >
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 12 12"
+                    style={{
+                        transform: resOpen ? 'rotate(90deg)' : 'rotate(-90deg)', // закрыто ←, открыто →
+                        transition: 'transform .18s ease',
+                        display: 'block',
+                    }}
+                >
+                    <path
+                        d="M4 2 L8 6 L4 10"
+                        fill="none"
+                        stroke="#fff"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </svg>
+            </button>
 
-      {/* плашка ресурсов */}
-      {mine && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: resOpen ? 'calc(100% - 30px)' : 'calc(100% - 10px)',
-            transform: 'translateY(-50%)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '6px 8px',
-            borderRadius: 10,
-            background: 'rgba(0,0,0,.45)',
-            border: '1px solid rgba(255,255,255,.12)',
-            backdropFilter: 'blur(3px)',
-            boxShadow: '0 4px 10px rgba(0,0,0,.25)',
-            transition: 'left .18s ease, opacity .18s ease',
-            opacity: resOpen ? 1 : 0,
-            pointerEvents: resOpen ? 'auto' : 'none',
-            zIndex: 2,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span
-            style={{
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: 13,
-              textShadow: '0 1px 2px rgba(0,0,0,.5)',
-              minWidth: 86,
-              textAlign: 'center',
-            }}
-          >
-            {fmt(mine?.buffer)} / {fmt(mine?.bufferCap)}
-          </span>
+            {mine && (
+                <div
+                    style={{
+                        position: "absolute",
+                        left: "50%",
+                        bottom: 70,
+                        transform: resOpen ? "translate(-50%, 0) scale(1)" : "translate(-50%, 12px) scale(0.92)",
+                        transformOrigin: "50% 100%",            // растём из низа
+                        transition: "transform .28s cubic-bezier(.2,.8,.2,1), opacity .18s ease, left .18s ease",
+                        willChange: "transform",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 8px",
+                        borderRadius: 10,
+                        background: "rgba(0,0,0,.45)",
+                        border: "1px solid rgba(255,255,255,.12)",
+                        backdropFilter: "blur(3px)",
+                        boxShadow: "0 4px 10px rgba(0,0,0,.25)",
+                        opacity: resOpen ? 1 : 0,
+                        pointerEvents: resOpen ? "auto" : "none",
+                        zIndex: 2,
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    <span
+                        style={{
+                            color: "#fff",
+                            fontWeight: 800,
+                            fontSize: 13,
+                            textShadow: "0 1px 2px rgba(0,0,0,.5)",
+                            minWidth: 86,
+                            textAlign: "center",
+                        }}
+                    >
+                        {fmt(mine?.buffer)} / {fmt(mine?.bufferCap)}
+                    </span>
 
-          <button
-            onClick={claim}
-            disabled={claiming || !mine || (mine.buffer ?? 0) <= 0}
-            style={{
-              height: 26,
-              padding: '0 12px',
-              borderRadius: 999,
-              border: 'none',
-              fontWeight: 800,
-              fontSize: 12,
-              color: '#0b1220',
-              background: mine && (mine.buffer ?? 0) > 0 ? '#ffd54a' : 'rgba(255,255,255,.25)',
-              cursor: claiming || !mine || (mine.buffer ?? 0) <= 0 ? 'default' : 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,.25)',
-            }}
-            title="Забрать из буфера в склад"
-          >
-            {claiming ? '...' : 'СОБРАТЬ'}
-          </button>
+                    <button
+                        onClick={claim}
+                        disabled={claiming || !mine || (mine.buffer ?? 0) <= 0}
+                        style={{
+                            height: 26,
+                            padding: "0 12px",
+                            borderRadius: 999,
+                            border: "none",
+                            fontWeight: 800,
+                            fontSize: 12,
+                            color: "#0b1220",
+                            background: mine && (mine.buffer ?? 0) > 0 ? "#ffd54a" : "rgba(255,255,255,.25)",
+                            cursor: claiming || !mine || (mine.buffer ?? 0) <= 0 ? "default" : "pointer",
+                            boxShadow: "0 2px 6px rgba(0,0,0,.25)",
+                        }}
+                        title="Забрать из буфера в склад"
+                    >
+                        {claiming ? "..." : "СОБРАТЬ"}
+                    </button>
+                </div>
+            )}
+
         </div>
-      )}
-    </div>
-  );
+    );
 }

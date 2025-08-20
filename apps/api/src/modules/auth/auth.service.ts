@@ -81,8 +81,17 @@ export class AuthService {
         return { token };
     }
 
-    /** Получить пользователя по tgId (для /auth/whoami) */
+    /** Получить пользователя по tgId */
     getUserByTgId(tgId: string) {
         return this.prisma.user.findUnique({ where: { tgId } });
+    }
+
+    /** Гарантированно создать пользователя, если его нет */
+    ensureUserByTgId(tgId: string) {
+        return this.prisma.user.upsert({
+            where: { tgId },
+            create: { tgId },
+            update: {},
+        });
     }
 }

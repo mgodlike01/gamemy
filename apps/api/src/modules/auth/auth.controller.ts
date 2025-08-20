@@ -18,17 +18,19 @@ export class AuthController {
         return this.auth.devToken(tgId);
     }
 
-    // вернуть текущего пользователя (по JWT/заголовкам) — теперь тащит профиль из БД
+    // вернуть текущего пользователя (по JWT/заголовкам)
     @Get('whoami')
     async whoami(@Req() req: FastifyRequest) {
         const auth = String(req.headers['authorization'] || '');
-        const hasBearer = auth.startsWith('Bearer ');
-        const tgId = getTgIdFromRequest(req);
-        const from = hasBearer ? 'jwt' : (req.headers['x-tg-id'] ? 'header' : 'none');
+        const from = auth.startsWith('Bearer ')
+            ? 'jwt'
+            : (req.headers['x-tg-id'] ? 'header' : 'none');
 
+        const tgId = getTgIdFromRequest(req);
         if (!tgId) return { from, user: null };
 
-        const user = await this.auth.getUserByTgId(tgId);
+        // Теперь гарантируем, что запись в БД есть
+        const user = await this.auth.ensureUserByTgId(tgId);
         return { from, user };
     }
 }

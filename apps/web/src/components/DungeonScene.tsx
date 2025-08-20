@@ -30,7 +30,18 @@ type Props = {
   armSwingDeg?: number;        // амплитуда поворота в градусах (по умолчанию 10)
   armLiftPx?: number;          // вертикальный подъём/опускание, px (по умолчанию 4)
   armWaveMs?: number;          // длительность цикла, мс (по умолчанию 1400)
-
+    /** 🔥 Новый проп: «отдаление» фона. 1 = как есть. <1 — отдаляем, >1 — приближаем */
+    bgScale?: number;
+    /** Сдвиги фона по осям (тонкая подгонка) */
+    bgOffsetX?: number;
+    bgOffsetY?: number;
+    /** смещение героя (px) */
+    heroOffsetX?: number;
+    heroOffsetY?: number; // вверх — положительное значение
+    /** отзеркалить героя по X */
+    heroFlip?: boolean;
+    style?: React.CSSProperties;
+    heroStyle?: React.CSSProperties;
   /** фолбэк — целиковый PNG героя */
   hero?: string;
 
@@ -117,7 +128,11 @@ export function DungeonScene({
   left,
   right,
   bottom,
-
+    bgScale = 1,
+    bgOffsetX = 0,
+    bgOffsetY = 0,
+    style,
+    heroStyle = {},
   heroBottomPct = 18,
 
   heroIdle = true,
@@ -142,6 +157,10 @@ export function DungeonScene({
   armSwingDeg = 10,
   armLiftPx = 4,
   armWaveMs = 1400,
+
+    heroOffsetX = 0,
+    heroOffsetY = 0,
+    heroFlip = false,
 
 
 }: Props) {
@@ -179,29 +198,25 @@ export function DungeonScene({
 
   return (
     <div
-      style={{
-        position: "relative",
-        width: "100%",
-        height,
-        overflow: "hidden",
-        touchAction: "manipulation",
-        backgroundColor: "#000",
-      }}
-    >
+          style={{ position: "absolute", inset: 0, height, overflow: "hidden", ...style }}>
+    
       {/* BACKGROUND */}
       <img
         src={bg}
         alt=""
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          zIndex: 0,
-          pointerEvents: "none",
-          //top:"-115px",
-        }}
+              style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  width: `calc(100% / ${bgScale || 1})`,
+                  height: `calc(100% / ${bgScale || 1})`,
+                  objectFit: "cover",
+                  transform: `translate(calc(-50% + ${bgOffsetX}px), calc(-50% + ${bgOffsetY}px)) scale(${bgScale})`,
+                  transformOrigin: "center",
+                  zIndex: 0,
+                  pointerEvents: "none",
+                  userSelect: "none",
+              }}
       />
 
       {/* HERO */}
@@ -211,7 +226,8 @@ export function DungeonScene({
             position: "absolute",
             left: "50%",
             bottom: `${heroBottomPct}%`,
-            transform: "translateX(-50%)",
+            transform: `translate(calc(-50% + ${heroOffsetX}px), ${-heroOffsetY}px) ${heroFlip ? 'scaleX(-1)' : ''}`,
+            transformOrigin: "50% 100%",
             zIndex: 2,
             width: heroW * heroScale,
             height: heroW * heroScale * HERO_RATIO,
@@ -220,7 +236,8 @@ export function DungeonScene({
             pointerEvents: "none",
             outline: debugHeroBox ? "1px dashed rgba(255,0,0,.6)" : "none",
                       outlineOffset: 2,
-          top:"345px",
+                      ...heroStyle, 
+          
           }}
         >
           <div
@@ -237,7 +254,8 @@ export function DungeonScene({
                   objectFit: "contain",
                   filter: "drop-shadow(0 6px 18px rgba(0,0,0,.45))",
                   imageRendering: "auto",
-                  display: "block",
+                    display: "block",
+
                 }}
               />
             )}
