@@ -5,12 +5,12 @@ import { useProfile } from '../shared/useProfile';
 import { api } from '../shared/api';
 import { DungeonScene } from '../components/DungeonScene';
 import GenderSelectModal from '../components/GenderSelectModal';
-import { LoadingScreen } from '../components/LoadingScreen';
+
 import { useMine } from '../shared/useMine';
-import { HeroHeader } from '../components/HeroHeader';
+import HeroHeader from '../components/HeroHeader';
 import { SafeStage } from '../shared/SafeStage';
 import { logout } from '../shared/api';
-
+import ProfileButton from "../components/ProfileButton";
 /** безопасный отступ под шапку Telegram + вырезы */
 function useTelegramSafeTop() {
   const [safeTop, setSafeTop] = React.useState(64);
@@ -204,10 +204,12 @@ export default function Home() {
   const coinIcon = '/icons/coin.svg';
   const gemIcon = '/icons/gem.svg';
 
+
+
   return (
     <SafeStage baseWidth={BASE_W} baseHeight={BASE_H} offsetY={0}>
       <>
-        {booting && <LoadingScreen progress={progress} />}
+        {booting}
 
         <DungeonScene
           bg="/scenes/home_bg.png"
@@ -235,7 +237,9 @@ export default function Home() {
                   
 
           /** ЛЕВЫЙ ВЕРХ — аватар/имя, кликабельно в профиль */
-          topLeft={
+                  topLeft={
+
+
             <div
                   onClick={() => nav('/profile', { state: { modal: true, backgroundLocation: location } })}
 
@@ -248,7 +252,8 @@ export default function Home() {
                 userSelect: 'none',
                 cursor: 'pointer',
               }}
-            >
+                      >
+
               <HeroHeader
                 avatarSize={36}
                 showLevel
@@ -257,6 +262,7 @@ export default function Home() {
                 avatarUrl={avatarUrl}
               />
             </div>
+
           }
 
           /** ПРАВЫЙ ВЕРХ — энергия/монеты/драгоценности */

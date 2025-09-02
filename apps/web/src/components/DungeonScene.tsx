@@ -11,6 +11,13 @@ type HeroParts = {
   weapon?: string;
 };
 
+type PartsProp = React.ReactNode | (() => React.ReactNode);
+
+interface EnemyState {
+    hit?: boolean;
+    dead?: boolean;
+}
+
 type PartRect = {
   /** проценты от бокса героя */
   x: number; // left%
@@ -80,6 +87,14 @@ type Props = {
   sideAlign?: "middle" | "top";
   sideLiftPx?: number;
 
+    backlineSrc?: string;
+    backlineScale?: number;        // множитель размера от сеточной ширины героя
+    backlineBottomPct?: number;    // посадка от нижнего края сцены, в %
+    backlineOffsetX?: number;      // сдвиг по X (px), вправо — положительный
+    backlineOffsetY?: number;      // сдвиг по Y (px), вверх — положительный
+    backlineFlip?: boolean;        // зеркалирование по X
+    backlineStyle?: React.CSSProperties;
+
   /** нижний ряд кнопок */
   bottomRow?: React.ReactNode[];
   bottomLiftPx?: number;
@@ -88,7 +103,20 @@ type Props = {
   topOffsetPx?: number;
 
   /** отладка рамки героя */
-  debugHeroBox?: boolean;
+    debugHeroBox?: boolean;
+    /** Враг */
+    enemyParts?: PartsProp | HeroParts;
+    enemyScale?: number;
+    enemyBottomPct?: number;
+    enemyOffsetX?: number;
+    enemyOffsetY?: number;
+    enemyFlip?: boolean;
+    enemyStyle?: React.CSSProperties;
+    enemyState?: EnemyState;
+    enemyFx?: {
+        dust?: boolean;    // показать облако пыли над врагом (смерть)
+        portal?: boolean;  // показать портал появления (до спавна)
+    };
 };
 
 const HERO_RATIO = 1.05;
@@ -113,7 +141,61 @@ const HERO_LAYOUT_DEFAULT: HeroLayout = {
   weapon:{ x: 12, y: 38, w: 20, h: 36, z: 6 },
 };
 
+
+
+// Вставляем keyframes один раз
+let __fxInjected = false;
+function ensureEnemyFxKeyframes() {
+    if (__fxInjected) return;
+    __fxInjected = true;
+    const css = `
+@keyframes enemyHitTint {
+  0%   { opacity: 0; }
+  30%  { opacity: .65; }
+  100% { opacity: 0; }
+}
+@keyframes enemyHitFlash {
+  0% { opacity: 0.0; }
+  10% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes dustPoof {
+  0%   { transform: translateX(-50%) scale(0.85); opacity: 0; }
+  20%  { opacity: 0.95; }
+  100% { transform: translateX(-50%) scale(1.35); opacity: 0; }
+}
+@keyframes portalPulse {
+  0%   { transform: translateX(-50%) scale(0.85); filter: brightness(0.9); }
+  50%  { transform: translateX(-50%) scale(1.0);  filter: brightness(1.2); }
+  100% { transform: translateX(-50%) scale(0.85); filter: brightness(0.9); }
+}`
+
+
+        ;
+
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+
+
+function isHeroParts(x: any): x is HeroParts {
+    return (
+        x &&
+        typeof x === "object" &&
+        ("body" in x ||
+            "head" in x ||
+            "armL" in x ||
+            "armR" in x ||
+            "legL" in x ||
+            "legR" in x ||
+            "helmet" in x ||
+            "weapon" in x)
+    );
+}
+
 export function DungeonScene({
+
   bg,
   fg,
   hero,
@@ -163,7 +245,25 @@ export function DungeonScene({
     heroFlip = false,
 
 
+    backlineSrc,
+    backlineScale = 1,
+    backlineBottomPct = 18,
+    backlineOffsetX = 0,
+    backlineOffsetY = 0,
+    backlineFlip = false,
+    backlineStyle,
+
+    enemyParts,
+    enemyScale = 1,
+    enemyBottomPct = 18,
+    enemyOffsetX = 20,   // правее центра
+    enemyOffsetY = 0,
+    enemyFlip = false,     // смотрит на героя
+    enemyStyle,
+    enemyState,
+    enemyFx,
 }: Props) {
+    ensureEnemyFxKeyframes();
   const layout = { ...HERO_LAYOUT_DEFAULT, ...(heroLayout || {}) };
 
   const topPad = Math.max(0, Math.floor(topOffsetPx));
@@ -196,6 +296,10 @@ export function DungeonScene({
       heroParts.helmet ||
       heroParts.weapon);
 
+    const enemyHitFilter = enemyState?.hit
+        ? "brightness(0.7) sepia(1) hue-rotate(-10deg) saturate(4)"
+        : "none";
+
   return (
     <div
           style={{ position: "absolute", inset: 0, height, overflow: "hidden", ...style }}>
@@ -218,6 +322,37 @@ export function DungeonScene({
                   userSelect: "none",
               }}
       />
+
+
+          {/* BACKLINE — отряд помощников, стоит позади героя */}
+          {backlineSrc && (
+              <div
+                  style={{
+                      position: "absolute",
+                      left: "50%",
+                      bottom: `${backlineBottomPct}%`,
+                      transform: `translate(calc(-50% + ${backlineOffsetX}px), ${-backlineOffsetY}px) ${backlineFlip ? "scaleX(-1)" : ""}`,
+                      transformOrigin: "50% 100%",
+                      zIndex: 1, // bg:0, backline:1, hero:2.., fg:5
+                      width: heroW * backlineScale,
+                      height: heroW * backlineScale * HERO_RATIO,
+                      pointerEvents: "none",
+                      ...(backlineStyle || {}),
+                  }}
+              >
+                  <img
+                      src={backlineSrc}
+                      alt=""
+                      style={{
+                          display: "block",
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          imageRendering: "auto",
+                      }}
+                  />
+              </div>
+          )}
 
       {/* HERO */}
       {(hero || hasParts) && (
@@ -361,7 +496,146 @@ export function DungeonScene({
   }
 `}</style>
         </div>
-      )}
+          )}
+          {/* ENEMY */}
+          {enemyParts && (
+              <div
+                  style={{
+                      position: "absolute",
+                      left: "50%",
+                      bottom: `${enemyBottomPct}%`,
+                      transform: `translate(calc(${enemyOffsetX}px), ${-enemyOffsetY}px) ${enemyFlip ? "scaleX(-1)" : ""}`,
+                      transformOrigin: "50% 100%",
+                      zIndex: 52,
+                      width: heroW * enemyScale,               // используем ту же «рамку», что и у героя
+                      height: heroW * enemyScale * HERO_RATIO,
+                      //display: "grid",
+                      //placeItems: "center",
+                      pointerEvents: "none",
+                      ...(enemyStyle || {}),
+
+                  }}
+              >
+                  <div
+                      style={{
+                          position: "relative",          // 👈 важно
+                          isolation: "isolate",          // 👈 ограничивает blend внутри
+                          width: "100%",
+                          height: "100%",
+                          transform: "none",
+                          filter: enemyState?.dead ? "grayscale(1) brightness(0.75)" : "none",
+                          opacity: enemyState?.dead ? 0.9 : 1,
+                          transition: "filter 180ms ease, opacity 180ms ease",
+                      }}
+                  >
+                      {typeof enemyParts === "function"
+                                 ? (enemyParts as () => React.ReactNode)()
+                              : isHeroParts(enemyParts)
+                                  ? (
+                                          <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                                                {debugGrid && <GridOverlay />}
+                                                {/* порядок слоёв — ТОЧНО как у героя */}
+                                      {enemyParts.legL && (
+                                          <Part src={enemyParts.legL} rect={layout.legL} defaultZ={2}
+                                              extraStyle={{ filter: enemyHitFilter }} />
+                                      )}
+                                      {enemyParts.legR && (
+                                          <Part src={enemyParts.legR} rect={layout.legR} defaultZ={2}
+                                              extraStyle={{ filter: enemyHitFilter }} />
+                                      )}
+                                      {enemyParts.body && (
+                                          <Part src={enemyParts.body} rect={layout.body} defaultZ={3}
+                                              extraStyle={{ filter: enemyHitFilter }} />
+                                      )}
+                                                {enemyParts.armL && (
+                                                      <Part
+                                                    src={enemyParts.armL}
+                                                    rect={layout.armL}
+                                                    defaultZ={4}
+                                                    extraStyle={{
+                                                    transformOrigin: "20% 10%",
+                                                     animation: armsWave ? `armWaveLeft ${armWaveMs}ms ease-in-out infinite` : undefined,
+                                                        willChange: armsWave ? "transform" : undefined,
+                                                        filter: enemyHitFilter,
+                                                    }}
+                                            />
+                                        )}
+                                               {enemyParts.armR && (
+                                                      <Part
+                                                    src={enemyParts.armR}
+                                                    rect={layout.armR}
+                                                    defaultZ={4}
+                                                    extraStyle={{
+                                                    transformOrigin: "80% 10%",
+                                                      animation: armsWave ? `armWaveRight ${armWaveMs}ms ease-in-out infinite ${armWaveMs / 2}ms` : undefined,
+                                                        willChange: armsWave ? "transform" : undefined,
+                                                        filter: enemyHitFilter,
+                                                        }}
+                                                />
+                                                    )}
+                                      {enemyParts.head && (
+                                          <Part src={enemyParts.head} rect={layout.head} defaultZ={5}
+                                              extraStyle={{ filter: enemyHitFilter }} />
+                                      )}
+                                      {enemyParts.helmet && (
+                                          <Part src={enemyParts.helmet} rect={layout.helmet} defaultZ={6}
+                                              extraStyle={{ filter: enemyHitFilter }} />
+                                      )}
+                                      {enemyParts.weapon && (
+                                          <Part src={enemyParts.weapon} rect={layout.weapon} defaultZ={6}
+                                              extraStyle={{ filter: enemyHitFilter }} />
+                                      )}
+                                              </div>
+                                        )
+                              : enemyParts}
+
+                      
+                      {/* Облако пыли (смерть) */}
+                      {enemyFx?.dust && (
+                          <img
+                              src="/fx/dust_poof.png"   // положи картинку в public/fx/
+                              alt=""
+                              style={{
+                                  position: "absolute",
+                                  left: "50%",
+                                  bottom: "1%",
+                                  transform: "translateX(-50%)",
+                                  width: "160%",
+                                  height: "auto",
+                                  opacity: 0.95,
+                                  animation: "dustPoof 520ms ease-out forwards",
+                                  pointerEvents: "none",
+                                  zIndex: 5,
+                              }}
+                          />
+                      )}
+
+                      {/* Портал появления */}
+                      {enemyFx?.portal && (
+                          <img
+                              src="/fx/portal.png"     // положи картинку в public/fx/
+                              alt=""
+                              style={{
+                                  position: "absolute",
+                                  left: "50%",
+                                  bottom: "0%",
+                                  transform: "translateX(-50%)",
+                                  width: "140%",
+                                  height: "auto",
+                                  opacity: 0.9,
+                                  animation: "portalPulse 480ms ease-in-out infinite",
+                                  pointerEvents: "none",
+                                  mixBlendMode: "screen",
+                              }}
+                          />
+                      )}
+
+                  </div>
+              </div>
+
+          )}
+          
+
 
       {/* FOREGROUND */}
       {fg && (

@@ -1,83 +1,96 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {
-    BrowserRouter,
-    Routes,
-    Route,
-    useLocation,
-    useNavigate,
-    type Location,
-} from "react-router-dom";
+import { HashRouter } from "react-router-dom"; // Для Mini App безопаснее HashRouter
+import App from "./App";
+import { LoadingScreen } from "./components/LoadingScreen";
+import { preloadImages, waitForFonts, waitForStylesheet } from "./shared/bootstrap";
 
-import { ensureAuth } from "./shared/api";
+// 🔹 ЧАНКИ страниц, которые хотим прогреть перед стартом
+const PAGE_CHUNKS = [
+    () => import("./pages/Home"),
+    () => import("./pages/Mine"),
+    () => import("./pages/Profile"),
+    () => import("./pages/Raids"),
+];
 
-// страницы
-import Home from "./pages/Home";
-import Profile from "./pages/Profile";
+// 🔹 КРИТИЧНЫЕ КАРТИНКИ/ФОНЫ — заполни своими путями
+const IMAGE_ASSETS = [
+    "/public/scenes/home_bg.png",
+    "/public/scenes/dungeon_bg.png",
+    "/public/bg/profile.jpg",
+    "/assets/bg/raids.jpg",
+    "/assets/hero/body.png",
+    "/assets/ui/panel.png",
+    "public/hero_parts/male/body.png",
+    "public/hero_parts/male/head.png",
+    "public/hero_parts/male/arm_left.png",
+    "public/hero_parts/male/arm_right.png",
+    "public/hero_parts/male/leg_left.png",
+    "public/hero_parts/male/leg_right.png",
+];
 
-// модалка
-import ProfileModal from "./components/ProfileModal";
-import Mine from "./pages/Mine";
-import Raids from "./pages/Raids";
+// Общая загрузка всего перед монтированием App, с прогрессом 0..100
+async function loadBeforeApp(onProgress: (p: number) => void) {
+    let completed = 0;
+    const TASKS = 4; // chunks + images + fonts + css
 
-/**
- * Как открыть профиль как модалку:
- *   navigate('/profile', { state: { modal: true, backgroundLocation: location } })
- *   или <Link to="/profile" state={{ modal:true, backgroundLocation: location }} />
- *
- * Прямой переход на /profile без state.modal — покажет полную страницу.
- */
-async function boot() {
-    await ensureAuth();
+    const step = () => {
+        completed++;
+        onProgress(Math.round((completed / TASKS) * 100));
+    };
 
-    function AppRoutes() {
-        const location = useLocation();
-        const state = location.state as
-            | { modal?: boolean; backgroundLocation?: Location }
-            | undefined;
+    // 1) Чанки страниц (ленивые импорты)
+    await Promise.all(PAGE_CHUNKS.map((f) => f()));
+    step();
 
-        const background =
-            state?.modal && state.backgroundLocation ? state.backgroundLocation : location;
+    // 2) Картинки (внутри обновляем долю шага)
+    await preloadImages(IMAGE_ASSETS, (done, total) => {
+        onProgress(Math.round(((completed + done / Math.max(1, total)) / TASKS) * 100));
+    });
+    step();
 
-        const navigate = useNavigate();
-        const onClose = () => {
-            // если открывали модалкой — вернёмся ровно туда, откуда пришли
-            if (state?.backgroundLocation) {
-                navigate(state.backgroundLocation, { replace: true });
-            } else {
-                // если открыли /profile напрямую (без modal-state)
-                navigate("/home", { replace: true });
+    // 3) Шрифты
+    await waitForFonts();
+    step();
+
+    // 4) Стили
+    await waitForStylesheet();
+    step();
+}
+
+function Root() {
+    const [ready, setReady] = React.useState(false);
+    const [progress, setProgress] = React.useState(0);
+
+    React.useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                await loadBeforeApp((p) => {
+                    if (alive) setProgress(p);
+                });
+            } finally {
+                if (alive) setReady(true);
             }
+        })();
+        return () => {
+            alive = false;
         };
+    }, []);
 
-        return (
-            <>
-                {/* Фоновый слой */}
-                <Routes location={background}>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/home" element={<Home />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/raids" element={<Raids />} />
-                    <Route path="/mine" element={<Mine />} />
-                </Routes>
-
-                {/* Модалка поверх */}
-                {state?.modal && (
-                    <ProfileModal onClose={onClose}>
-                        <Profile />
-                    </ProfileModal>
-                )}
-            </>
-        );
+    if (!ready) {
+        return <LoadingScreen progress={progress} />;
     }
 
-    ReactDOM.createRoot(document.getElementById("root")!).render(
-        <React.StrictMode>
-            <BrowserRouter>
-                <AppRoutes />
-            </BrowserRouter>
-        </React.StrictMode>
+    return (
+        <HashRouter>
+            <App />
+        </HashRouter>
     );
 }
 
-boot();
+ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+        <Root />
+    </React.StrictMode>
+);

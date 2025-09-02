@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { IconTile } from '../components/IconTile';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useProfile } from '../shared/useProfile';
-import { api } from '../shared/api';
-import { DungeonScene } from '../components/DungeonScene';
-import GenderSelectModal from '../components/GenderSelectModal';
-import { LoadingScreen } from '../components/LoadingScreen';
-import { useMine } from '../shared/useMine';
-import { HeroHeader } from '../components/HeroHeader';
-import { SafeStage } from '../shared/SafeStage';
-import { logout } from '../shared/api';
+// src/pages/Mine.tsx
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { IconTile } from "../components/IconTile";
+import { DungeonScene } from "../components/DungeonScene";
+import GenderSelectModal from "../components/GenderSelectModal";
+import HeroHeader from "../components/HeroHeader";
+import { SafeStage } from "../shared/SafeStage";
+import { useProfile } from "../shared/useProfile";
+import { useMine } from "../shared/useMine";
+import { api, logout } from "../shared/api";
 
 /** безопасный отступ под шапку Telegram + вырезы */
 function useTelegramSafeTop() {
@@ -20,12 +20,12 @@ function useTelegramSafeTop() {
 
         const readPx = (varName: string) => {
             const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-            const n = parseFloat(raw || '0');
+            const n = parseFloat(raw || "0");
             return Number.isFinite(n) ? n : 0;
         };
 
         const recalc = () => {
-            const notch = readPx('--sat'); // см. index.css: --sat: env(safe-area-inset-top);
+            const notch = readPx("--sat"); // см. index.css: --sat: env(safe-area-inset-top);
             const isExpanded = !!tg?.isExpanded;
             const HEADER_NOT_EXPANDED = 92;
             const PADDING_EXPANDED = 16;
@@ -36,26 +36,25 @@ function useTelegramSafeTop() {
         };
 
         recalc();
-        tg?.onEvent?.('viewportChanged', recalc);
-        tg?.onEvent?.('themeChanged', recalc);
-        window.addEventListener('resize', recalc);
+        tg?.onEvent?.("viewportChanged", recalc);
+        tg?.onEvent?.("themeChanged", recalc);
+        window.addEventListener("resize", recalc);
 
         return () => {
-            tg?.offEvent?.('viewportChanged', recalc);
-            tg?.offEvent?.('themeChanged', recalc);
-            window.removeEventListener('resize', recalc);
+            tg?.offEvent?.("viewportChanged", recalc);
+            tg?.offEvent?.("themeChanged", recalc);
+            window.removeEventListener("resize", recalc);
         };
     }, []);
 
     return safeTop;
 }
 
-export default function Home() {
+export default function Mine() {
     const nav = useNavigate();
-    const location = useLocation();
     const { profile, reload, loading } = useProfile();
 
-    // ваши идеальные размеры сцены
+    // размеры сцены под SafeStage
     const BASE_W = 490;
     const BASE_H = 1050;
 
@@ -63,28 +62,27 @@ export default function Home() {
     const [energyMax, setEnergyMax] = useState(5);
     const [coins, setCoins] = useState(0);
     const [gems] = useState(0);
-    const [panelOpen, setPanelOpen] = useState(false);
-    const togglePanel = () => setPanelOpen(v => !v);
 
-    // загрузочный экран
+    const { mine } = useMine(8000);
+
+    // имитация загрузки (если используешь глобальный LoadingScreen — можно убрать)
     const [booting, setBooting] = useState(true);
     const [progress, setProgress] = useState(12);
-    const { mine, claiming, claim } = useMine(8000);
 
-    const fmt = (n?: number | null) => (typeof n === 'number' && isFinite(n) ? n.toLocaleString() : '0');
+    const fmt = (n?: number | null) => (typeof n === "number" && isFinite(n) ? n.toLocaleString() : "0");
 
-    // гендер-модалка (только если пола нет)
+    // гендер-модалка (оставляем логику, даже если героя не рендерим)
     const gender = useMemo(() => profile?.gender ?? (profile as any)?.hero?.gender ?? null, [profile]);
-    const LS_KEY = 'genderModalDismissed';
+    const LS_KEY = "genderModalDismissed";
     const [needGenderModal, setNeedGenderModal] = useState(false);
 
     useEffect(() => {
-        const dismissed = localStorage.getItem(LS_KEY) === '1';
+        const dismissed = localStorage.getItem(LS_KEY) === "1";
         if (loading || !profile) return;
 
         if (gender) {
             setNeedGenderModal(false);
-            if (!dismissed) localStorage.setItem(LS_KEY, '1');
+            if (!dismissed) localStorage.setItem(LS_KEY, "1");
             return;
         }
         setNeedGenderModal(!dismissed);
@@ -97,7 +95,7 @@ export default function Home() {
         }
     }, [mine?.warehouse]);
 
-    // имитация загрузки
+    // загрузка данных
     useEffect(() => {
         let alive = true;
         const stepTo = (val: number, delay = 120) =>
@@ -106,18 +104,18 @@ export default function Home() {
         (async () => {
             try {
                 stepTo(30);
-                const p1 = api.get('/raids/status');
+                const p1 = api.get("/raids/status");
                 stepTo(55);
-                const p2 = api.get('/mine');
+                const p2 = api.get("/mine");
 
                 const [r1, r2] = await Promise.allSettled([p1, p2]);
 
-                if (r1.status === 'fulfilled') {
+                if (r1.status === "fulfilled") {
                     const d: any = r1.value.data;
                     setEnergy(d.energy ?? 0);
                     setEnergyMax(d.energyMax ?? 5);
                 }
-                if (r2.status === 'fulfilled') {
+                if (r2.status === "fulfilled") {
                     const m: any = r2.value.data;
                     setCoins(m?.warehouse ?? 0);
                 }
@@ -127,24 +125,29 @@ export default function Home() {
                 setTimeout(() => {
                     if (alive) {
                         setProgress(100);
-                        setTimeout(() => { if (alive) setBooting(false); }, 2000);
+                        setTimeout(() => {
+                            if (alive) setBooting(false);
+                        }, 2000);
                     }
                 }, 180);
             }
         })();
-        return () => { alive = false; };
+
+        return () => {
+            alive = false;
+        };
     }, []);
 
     const safeTopPx = useTelegramSafeTop();
 
-    // Telegram WebApp user (на случай, если из профиля ещё не пришло)
+    // Telegram WebApp user (fallback для шапки)
     const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user as
         | { id?: number; username?: string; first_name?: string; last_name?: string; photo_url?: string }
         | undefined;
 
     const pickFirstString = (arr: any[]) => {
         for (const v of arr) {
-            if (typeof v === 'string') {
+            if (typeof v === "string") {
                 const s = v.trim();
                 if (s) return s;
             }
@@ -156,18 +159,18 @@ export default function Home() {
         pickFirstString([
             profile?.displayName,
             profile?.username,
-            [profile?.firstName, profile?.lastName].filter(Boolean).join(' '),
+            [profile?.firstName, profile?.lastName].filter(Boolean).join(" "),
             (profile as any)?.name,
             (profile as any)?.fullName,
             (profile as any)?.user?.displayName,
             (profile as any)?.user?.username,
-            [(profile as any)?.user?.firstName, (profile as any)?.user?.lastName].filter(Boolean).join(' '),
+            [(profile as any)?.user?.firstName, (profile as any)?.user?.lastName].filter(Boolean).join(" "),
             (profile as any)?.user?.name,
             (profile as any)?.user?.fullName,
-            tgUser && [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' '),
+            tgUser && [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" "),
             tgUser?.username,
             (profile as any)?.tgId,
-        ]) || 'Герой';
+        ]) || "Герой";
 
     const avatarUrl =
         pickFirstString([
@@ -178,81 +181,51 @@ export default function Home() {
             (profile as any)?.user?.avatarUrl,
             (profile as any)?.user?.telegramPhotoUrl,
             tgUser?.photo_url,
-            profile?.avatarKey ? `/avatars/${profile.avatarKey}.png` : '',
-        ]) || '/avatars/placeholder.png';
+            profile?.avatarKey ? `/avatars/${profile.avatarKey}.png` : "",
+        ]) || "/avatars/placeholder.png";
 
-    // --- наборы слоёв для героя ---
-    const rigMale = {
-        body: '/hero_parts/male/body.png',
-        head: '/hero_parts/male/head.png',
-        armL: '/hero_parts/male/arm_left.png',
-        armR: '/hero_parts/male/arm_right.png',
-        legL: '/hero_parts/male/leg_left.png',
-        legR: '/hero_parts/male/leg_right.png',
-    };
-    const rigFemale = {
-        body: '/hero_parts/female/body.png',
-        head: '/hero_parts/female/head.png',
-        armL: '/hero_parts/female/arm_left.png',
-        armR: '/hero_parts/female/arm_right.png',
-        legL: '/hero_parts/female/leg_left.png',
-        legR: '/hero_parts/female/leg_right.png',
-    };
-    const useFemale = (profile?.gender ?? (profile as any)?.hero?.gender) === 'female';
-    const heroParts = useFemale ? rigFemale : rigMale;
-
-    // иконки HUD
-    const energyIcon = '/icons/energy.png';
-    const coinIcon = '/icons/coin.svg';
-    const gemIcon = '/icons/gem.svg';
+    // ===================== СЦЕНА БЕЗ ГЕРОЯ И ВРАГОВ ======================
 
     return (
         <SafeStage baseWidth={BASE_W} baseHeight={BASE_H} offsetY={0}>
             <>
-                {booting && <LoadingScreen progress={progress} />}
+                {booting /* ← если используешь общий LoadingScreen — можно не выводить ничего тут */}
 
                 <DungeonScene
+                    /* фон/передний план */
                     bg="/scenes/dungeon_bg.png"
                     fg="/scenes/dungeon_fg.png"
 
-                    /** передаём слои героя */
-                    heroParts={heroParts}
-                    heroScale={0.38}         // <- слегка увеличен
-                    heroBottomPct={38}
+                    /* 🔹 ОТРЯД ПОМОЩНИКОВ (единственный персонаж на сцене) */
+                    backlineSrc="/allies/squad.png"   // положи файл в apps/web/public/allies/squad.png
+                    backlineScale={0.95}               // 0.85–1.1 под твой арт
+                    backlineBottomPct={15}            // посадка: больше → выше/дальше
+                    backlineOffsetX={0}
+                    backlineOffsetY={0}
+                    backlineFlip={false}
+                    backlineStyle={{
+                        filter: "saturate(0.75) contrast(0.98)",
+                        opacity: 0.80,
+                    }}
+
+                    /* высота сцены на весь экран */
                     height="100%"
 
-                    armsWave={true}
-                    armSwingDeg={2}
-                    armLiftPx={1}
-                    armWaveMs={2500}
-
-                    /** чтобы не залезало под интерфейс Телеграма */
+                    /* отступ по safe-area, если нужен */
                     topOffsetPx={safeTopPx + 70}
-
-                    /** расположение боковых колонок */
                     sideAlign="middle"
                     sideLiftPx={165}
                     bottomLiftPx={36}
-                    heroOffsetX={46}   // вправо
-                    heroOffsetY={152}   // вверх
-                    heroFlip={true}
-                    heroStyle={{
-                        filter: "brightness(0.9) contrast(0.95) saturate(0.9) blur(0.5px)",
-                        opacity: 0.9,
-                    }}
-                    /** ЛЕВЫЙ ВЕРХ — аватар/имя, кликабельно в профиль */
+
+                    /* HUD слева сверху */
                     topLeft={
                         <div
-                            onClick={() => nav('/profile', { state: { modal: true, backgroundLocation: location } })}
-
-
                             style={{
-                                display: 'flex',
-                                flexDirection: 'column',
+                                display: "flex",
+                                flexDirection: "column",
                                 gap: 8,
-                                alignItems: 'flex-start',
-                                userSelect: 'none',
-                                cursor: 'pointer',
+                                alignItems: "flex-start",
+                                userSelect: "none",
                             }}
                         >
                             <HeroHeader
@@ -265,36 +238,34 @@ export default function Home() {
                         </div>
                     }
 
-                    /** ПРАВЫЙ ВЕРХ — энергия/монеты/драгоценности */
+                    /* HUD справа сверху */
                     topRight={
                         <div
                             style={{
-                                display: 'flex',
-                                alignItems: 'center',
+                                display: "flex",
+                                alignItems: "center",
                                 gap: 10,
-                                background: 'rgba(0,0,0,.28)',
-                                border: '1px solid rgba(255,255,255,.18)',
+                                background: "rgba(0,0,0,.28)",
+                                border: "1px solid rgba(255,255,255,.18)",
                                 borderRadius: 14,
-                                padding: '6px 10px',
-                                color: '#fff',
-                                backdropFilter: 'blur(6px)',
+                                padding: "6px 10px",
+                                color: "#fff",
+                                backdropFilter: "blur(6px)",
                             }}
                         >
-                            <HudItem icon={energyIcon} text={`${energy} / ${energyMax}`} />
-                            <HudItem icon={coinIcon} text={coins.toLocaleString()} />
-                            <HudItem icon={gemIcon} text={String(gems)} />
+                            <HudItem icon="/icons/energy.png" text={`${energy} / ${energyMax}`} />
+                            <HudItem icon="/icons/coin.svg" text={coins.toLocaleString()} />
+                            <HudItem icon="/icons/gem.svg" text={String(gems)} />
                             <button
                                 onClick={async () => {
                                     await logout();
-                                    // Можно сразу дернуть повторную загрузку профиля:
-                                    // await reload();
                                 }}
                                 style={{
-                                    padding: '10px 14px',
+                                    padding: "10px 14px",
                                     borderRadius: 8,
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                    background: 'rgba(255,255,255,0.06)',
-                                    color: '#fff',
+                                    border: "1px solid rgba(255,255,255,0.2)",
+                                    background: "rgba(255,255,255,0.06)",
+                                    color: "#fff",
                                 }}
                             >
                                 Сбросить вход
@@ -302,37 +273,7 @@ export default function Home() {
                         </div>
                     }
 
-                    /** ЛЕВАЯ КОЛОНКА */
-                   /* left={
-                        <>
-
-                            <IconTile title="КВЕСТЫ" icon="/icons/quests.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-                            <IconTile
-                                title="Инвентарь"
-                                icon="/icons/inventory.png"
-                                variant="compact"
-                                iconSize="70px"
-                                labelSize="clamp(11px,3vw,13px)"
-                                labelOffsetY={-4}
-                                uppercase
-                                onClick={() => nav('/profile')}
-                            />
-                            <IconTile title="БОССЫ" icon="/icons/boss.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-                        </>
-                    }
-
-                    /** ПРАВАЯ КОЛОНКА */
-                   /* right={
-                        <>
-                            <IconTile title="МАГАЗИН" icon="/icons/shop.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase badge="!" />
-                            <IconTile title="ЛИДЕРЫ" icon="/icons/leaderboard.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-                            <IconTile title="КЛАНЫ" icon="/icons/clans.png" variant="compact" iconSize="70px" labelSize="clamp(11px,3vw,13px)" labelOffsetY={-4} uppercase />
-
-                            
-                        </>
-                    }
-
-                    /** НИЖНИЙ РЯД */
+                    /* нижние плитки */
                     bottomRow={[
                         <IconTile
                             key="home"
@@ -342,7 +283,7 @@ export default function Home() {
                             labelPosition="below"
                             iconSize="48px"
                             floatIdle={false}
-                            onClick={() => nav('/home')}
+                            onClick={() => nav("/home")}
                         />,
                         <DungeonSmartDungeonTile key="dungeon" />,
                         <IconTile
@@ -353,21 +294,20 @@ export default function Home() {
                             labelPosition="below"
                             iconSize="48px"
                             floatIdle={false}
-                            onClick={() => nav('/raids')}
+                            onClick={() => nav("/raids")}
                         />,
-                        
                     ]}
                 />
 
-                {/* модалка выбора пола (если не выбран) */}
+                {/* модалка выбора пола */}
                 <GenderSelectModal
                     open={needGenderModal}
                     onClose={() => {
-                        localStorage.setItem('genderModalDismissed', '1');
+                        localStorage.setItem("genderModalDismissed", "1");
                         setNeedGenderModal(false);
                     }}
                     onChosen={() => {
-                        localStorage.setItem('genderModalDismissed', '1');
+                        localStorage.setItem("genderModalDismissed", "1");
                         setNeedGenderModal(false);
                         reload?.();
                     }}
@@ -380,8 +320,8 @@ export default function Home() {
 /** маленький элемент HUD: иконка + текст */
 function HudItem({ icon, text }: { icon: string; text: string }) {
     return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <img src={icon} alt="" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <img src={icon} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />
             <span style={{ fontWeight: 700 }}>{text}</span>
         </span>
     );
@@ -395,10 +335,8 @@ function DungeonSmartDungeonTile() {
     const [resOpen, setResOpen] = React.useState(false);
     const [manual, setManual] = React.useState<null | boolean>(null);
 
-    const fmt = (n?: number | null) =>
-        typeof n === 'number' && isFinite(n) ? n.toLocaleString() : '0';
+    const fmt = (n?: number | null) => (typeof n === "number" && isFinite(n) ? n.toLocaleString() : "0");
 
-    // автопоказ при >=50% буфера (пока пользователь не кликал вручную)
     React.useEffect(() => {
         if (!mine) return;
         if (manual !== null) return;
@@ -412,7 +350,7 @@ function DungeonSmartDungeonTile() {
     };
 
     return (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ position: "relative", display: "inline-block" }}>
             <IconTile
                 title="ПОДЗЕМЕЛЬЕ"
                 icon="/icons/dungeon.png"
@@ -422,29 +360,27 @@ function DungeonSmartDungeonTile() {
                 labelOffsetY={-4}
                 uppercase
                 floatIdle={false}
-                onClick={() => nav('/mine')}
+                onClick={() => nav("/mine")}
             />
 
-            {/* кнопка-стрелка */}
             <button
                 onClick={toggle}
                 aria-label="Свернуть/развернуть ресурсы"
                 style={{
-                    position: 'absolute',
-                    top: '50%',
+                    position: "absolute",
+                    top: "50%",
                     right: 25,
-                    transform: 'translateY(-50%)',
+                    transform: "translateY(-50%)",
                     width: 26,
                     height: 26,
                     borderRadius: 999,
-                    border: '1px solid rgba(255,255,255,.25)',
-                    background: 'rgba(0,0,0,.38)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    cursor: 'pointer',
+                    border: "1px solid rgba(255,255,255,.25)",
+                    background: "rgba(0,0,0,.38)",
+                    display: "grid",
+                    placeItems: "center",
+                    cursor: "pointer",
                     zIndex: 3,
                     padding: 0,
-                    
                 }}
             >
                 <svg
@@ -452,9 +388,9 @@ function DungeonSmartDungeonTile() {
                     height="14"
                     viewBox="0 0 12 12"
                     style={{
-                        transform: resOpen ? 'rotate(90deg)' : 'rotate(-90deg)', // закрыто ←, открыто →
-                        transition: 'transform .18s ease',
-                        display: 'block',
+                        transform: resOpen ? "rotate(90deg)" : "rotate(-90deg)",
+                        transition: "transform .18s ease",
+                        display: "block",
                     }}
                 >
                     <path
@@ -475,7 +411,7 @@ function DungeonSmartDungeonTile() {
                         left: "50%",
                         bottom: 70,
                         transform: resOpen ? "translate(-50%, 0) scale(1)" : "translate(-50%, 12px) scale(0.92)",
-                        transformOrigin: "50% 100%",            // растём из низа
+                        transformOrigin: "50% 100%",
                         transition: "transform .28s cubic-bezier(.2,.8,.2,1), opacity .18s ease, left .18s ease",
                         willChange: "transform",
                         display: "inline-flex",
@@ -527,7 +463,6 @@ function DungeonSmartDungeonTile() {
                     </button>
                 </div>
             )}
-
         </div>
     );
 }

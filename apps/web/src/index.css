@@ -1,10 +1,10 @@
-html, body, #root {
+п»їhtml, body, #root {
     height: 100%;
-    overflow: hidden; /* ВООБЩЕ не скроллим страницу */
+    overflow: hidden; /* Р’РћРћР‘Р©Р• РЅРµ СЃРєСЂРѕР»Р»РёРј СЃС‚СЂР°РЅРёС†Сѓ */
 }
 
 :root {
-    --topbar-h: 56px; /* высота шапки */
+    --topbar-h: 56px; /* РІС‹СЃРѕС‚Р° С€Р°РїРєРё */
     --sat: env(safe-area-inset-top, 0px);
     --sab: env(safe-area-inset-bottom, 0px);
 }
@@ -13,7 +13,7 @@ body {
     margin: 0;
     background: #0f1216;
     color: #e9edf1;
-    overscroll-behavior: none; /* без «перетяжки» на мобилках */
-    -webkit-overflow-scrolling: auto; /* убираем инерцию iOS */
+    overscroll-behavior: none; /* Р±РµР· В«РїРµСЂРµС‚СЏР¶РєРёВ» РЅР° РјРѕР±РёР»РєР°С… */
+    -webkit-overflow-scrolling: auto; /* СѓР±РёСЂР°РµРј РёРЅРµСЂС†РёСЋ iOS */
 
 }

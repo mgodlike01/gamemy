@@ -37,7 +37,7 @@ function useProfileSafe(): {
 
 // ТЁПЛЫЕ ТОНА, НО БЕЗ РАСТЯГИВАНИЯ НА ВЕСЬ ЭКРАН
 const cardStyle: React.CSSProperties = {
-    background: "#3a2417",
+    background: "rgba(177,175,164,0.50)",
     border: "2px solid #2a1a10",
     borderRadius: 16,
     padding: 12,
