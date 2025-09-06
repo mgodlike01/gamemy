@@ -6,6 +6,7 @@ import { RaidsModule } from './modules/raids/raids.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { UpgradesModule } from './modules/upgrades/upgrades.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { ProfileModule } from './modules/profile/profile.module';
         AuthModule,
         JobsModule,
         ProfileModule,
+        UpgradesModule,
     ],
 })
 export class AppModule { }

@@ -1,15 +1,19 @@
-// src/pages/Mine.tsx
+// apps/web/src/pages/Mine.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { IconTile } from "../components/IconTile";
 import { DungeonScene } from "../components/DungeonScene";
+import { IconTile } from "../components/IconTile";
 import GenderSelectModal from "../components/GenderSelectModal";
 import HeroHeader from "../components/HeroHeader";
 import { SafeStage } from "../shared/SafeStage";
+
 import { useProfile } from "../shared/useProfile";
 import { useMine } from "../shared/useMine";
 import { api, logout } from "../shared/api";
+
+import UpgradesOverlay from "../components/UpgradesOverlay";
+import * as U from "../shared/upgradesApi";
 
 /** безопасный отступ под шапку Telegram + вырезы */
 function useTelegramSafeTop() {
@@ -52,63 +56,39 @@ function useTelegramSafeTop() {
 
 export default function Mine() {
     const nav = useNavigate();
+    const safeTopPx = useTelegramSafeTop();
+
+    // профиль
     const { profile, reload, loading } = useProfile();
+    const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user as
+        | { id?: number; username?: string; first_name?: string; last_name?: string; photo_url?: string }
+        | undefined;
 
-    // размеры сцены под SafeStage
-    const BASE_W = 490;
-    const BASE_H = 1050;
-
+    // стейты ресурсов/энергии
     const [energy, setEnergy] = useState(0);
     const [energyMax, setEnergyMax] = useState(5);
     const [coins, setCoins] = useState(0);
     const [gems] = useState(0);
+    const [claimFlashTop, setClaimFlashTop] = useState<number | null>(null); // +N бейдж вверху
+    const [claimGlow, setClaimGlow] = useState(false);                      // зелёная подсветка монет вверху
 
-    const { mine } = useMine(8000);
 
-    // имитация загрузки (если используешь глобальный LoadingScreen — можно убрать)
-    const [booting, setBooting] = useState(true);
-    const [progress, setProgress] = useState(12);
 
-    const fmt = (n?: number | null) => (typeof n === "number" && isFinite(n) ? n.toLocaleString() : "0");
 
-    // гендер-модалка (оставляем логику, даже если героя не рендерим)
-    const gender = useMemo(() => profile?.gender ?? (profile as any)?.hero?.gender ?? null, [profile]);
-    const LS_KEY = "genderModalDismissed";
-    const [needGenderModal, setNeedGenderModal] = useState(false);
+    // шахта
+    const { mine, claim, claiming } = useMine(2000);
 
-    useEffect(() => {
-        const dismissed = localStorage.getItem(LS_KEY) === "1";
-        if (loading || !profile) return;
+    // апгрейды (моки — можно заменить реальным API)
+    const [upOpen, setUpOpen] = useState(false);
 
-        if (gender) {
-            setNeedGenderModal(false);
-            if (!dismissed) localStorage.setItem(LS_KEY, "1");
-            return;
-        }
-        setNeedGenderModal(!dismissed);
-    }, [loading, profile, gender]);
 
-    // монеты из шахты
-    useEffect(() => {
-        if (mine?.warehouse !== undefined && mine?.warehouse !== null) {
-            setCoins(mine.warehouse);
-        }
-    }, [mine?.warehouse]);
-
-    // загрузка данных
+    // загрузка данных для HUD
     useEffect(() => {
         let alive = true;
-        const stepTo = (val: number, delay = 120) =>
-            setTimeout(() => alive && setProgress((p) => Math.min(val, p + 5)), delay);
-
         (async () => {
             try {
-                stepTo(30);
-                const p1 = api.get("/raids/status");
-                stepTo(55);
-                const p2 = api.get("/mine");
-
-                const [r1, r2] = await Promise.allSettled([p1, p2]);
+                const [r1, r2] = await Promise.allSettled([api.get("/raids/status"), api.get("/mine")]);
+                if (!alive) return;
 
                 if (r1.status === "fulfilled") {
                     const d: any = r1.value.data;
@@ -119,32 +99,21 @@ export default function Mine() {
                     const m: any = r2.value.data;
                     setCoins(m?.warehouse ?? 0);
                 }
-
-                stepTo(92, 100);
-            } finally {
-                setTimeout(() => {
-                    if (alive) {
-                        setProgress(100);
-                        setTimeout(() => {
-                            if (alive) setBooting(false);
-                        }, 2000);
-                    }
-                }, 180);
-            }
+            } catch { }
         })();
-
         return () => {
             alive = false;
         };
     }, []);
 
-    const safeTopPx = useTelegramSafeTop();
+    // монеты обновляем из хука шахты (буфер/склад)
+    useEffect(() => {
+        if (mine?.warehouse !== undefined && mine?.warehouse !== null) {
+            setCoins(mine.warehouse);
+        }
+    }, [mine?.warehouse]);
 
-    // Telegram WebApp user (fallback для шапки)
-    const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user as
-        | { id?: number; username?: string; first_name?: string; last_name?: string; photo_url?: string }
-        | undefined;
-
+    // имя/аватар для шапки
     const pickFirstString = (arr: any[]) => {
         for (const v of arr) {
             if (typeof v === "string") {
@@ -154,94 +123,73 @@ export default function Mine() {
         }
         return undefined;
     };
-
     const name =
         pickFirstString([
             profile?.displayName,
             profile?.username,
             [profile?.firstName, profile?.lastName].filter(Boolean).join(" "),
-            (profile as any)?.name,
-            (profile as any)?.fullName,
             (profile as any)?.user?.displayName,
             (profile as any)?.user?.username,
             [(profile as any)?.user?.firstName, (profile as any)?.user?.lastName].filter(Boolean).join(" "),
-            (profile as any)?.user?.name,
-            (profile as any)?.user?.fullName,
             tgUser && [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" "),
             tgUser?.username,
-            (profile as any)?.tgId,
         ]) || "Герой";
-
     const avatarUrl =
         pickFirstString([
             profile?.photoUrl,
-            (profile as any)?.avatarUrl,
-            (profile as any)?.telegramPhotoUrl,
             (profile as any)?.user?.photoUrl,
             (profile as any)?.user?.avatarUrl,
-            (profile as any)?.user?.telegramPhotoUrl,
             tgUser?.photo_url,
             profile?.avatarKey ? `/avatars/${profile.avatarKey}.png` : "",
         ]) || "/avatars/placeholder.png";
 
-    // ===================== СЦЕНА БЕЗ ГЕРОЯ И ВРАГОВ ======================
+    // модалка выбора пола (оставляем, если нужно в онбординге)
+    const gender = useMemo(() => profile?.gender ?? (profile as any)?.hero?.gender ?? null, [profile]);
+    const [needGenderModal, setNeedGenderModal] = useState(false);
+    useEffect(() => {
+        const dismissed = localStorage.getItem("genderModalDismissed") === "1";
+        if (loading || !profile) return;
+        if (gender) {
+            setNeedGenderModal(false);
+            if (!dismissed) localStorage.setItem("genderModalDismissed", "1");
+            return;
+        }
+        setNeedGenderModal(!dismissed);
+    }, [loading, profile, gender]);
+
+    // размеры сцены под SafeStage
+    const BASE_W = 490;
+    const BASE_H = 1050;
 
     return (
         <SafeStage baseWidth={BASE_W} baseHeight={BASE_H} offsetY={0}>
             <>
-                {booting /* ← если используешь общий LoadingScreen — можно не выводить ничего тут */}
-
                 <DungeonScene
                     /* фон/передний план */
                     bg="/scenes/dungeon_bg.png"
                     fg="/scenes/dungeon_fg.png"
 
-                    /* 🔹 ОТРЯД ПОМОЩНИКОВ (единственный персонаж на сцене) */
-                    backlineSrc="/allies/squad.png"   // положи файл в apps/web/public/allies/squad.png
-                    backlineScale={0.95}               // 0.85–1.1 под твой арт
-                    backlineBottomPct={15}            // посадка: больше → выше/дальше
+                    /* 🔹 только отряд помощников (героя/врагов нет) */
+                    backlineSrc="/allies/squad.png"
+                    backlineScale={1.0}
+                    backlineBottomPct={20}
                     backlineOffsetX={0}
                     backlineOffsetY={0}
                     backlineFlip={false}
-                    backlineStyle={{
-                        filter: "saturate(0.75) contrast(0.98)",
-                        opacity: 0.80,
-                    }}
+                    backlineStyle={{ filter: "saturate(0.95) contrast(0.98)", opacity: 0.95 }}
 
-                    /* высота сцены на весь экран */
-                    height="100%"
-
-                    /* отступ по safe-area, если нужен */
-                    topOffsetPx={safeTopPx + 70}
-                    sideAlign="middle"
-                    sideLiftPx={165}
-                    bottomLiftPx={36}
-
-                    /* HUD слева сверху */
+                    /* верхний левый HUD */
                     topLeft={
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 8,
-                                alignItems: "flex-start",
-                                userSelect: "none",
-                            }}
-                        >
-                            <HeroHeader
-                                avatarSize={36}
-                                showLevel
-                                showCurrencies
-                                name={name}
-                                avatarUrl={avatarUrl}
-                            />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start", userSelect: "none" }}>
+                            <HeroHeader avatarSize={36} showLevel showCurrencies name={name} avatarUrl={avatarUrl} />
                         </div>
                     }
 
-                    /* HUD справа сверху */
+                    /* верхний правый HUD */
                     topRight={
                         <div
                             style={{
+                                position: "relative",
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 10,
@@ -254,8 +202,50 @@ export default function Mine() {
                             }}
                         >
                             <HudItem icon="/icons/energy.png" text={`${energy} / ${energyMax}`} />
-                            <HudItem icon="/icons/coin.svg" text={coins.toLocaleString()} />
+
+                            {/* Монеты с подсветкой и бейджем */}
+                            <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                    <img src="/icons/coin.svg" alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />
+                                    <span
+                                        style={{
+                                            fontWeight: 800,
+                                            display: "inline-block",
+                                            animation: claimGlow ? "glowPulse 0.9s ease forwards" : "none",
+                                        }}
+                                    >
+                                        {coins.toLocaleString()}
+                                    </span>
+                                </span>
+
+                                {/* Бейдж +N (всплывает над монетами) */}
+                                {claimFlashTop !== null && (
+                                    <span
+                                        style={{
+                                            position: "absolute",
+                                            left: "50%",
+                                            bottom: "100%",
+                                            transform: "translate(-50%, -6px)",
+                                            padding: "3px 8px",
+                                            borderRadius: 999,
+                                            fontWeight: 900,
+                                            fontSize: 11,
+                                            color: "#1f160f",
+                                            background: "#f5c96b",
+                                            border: "1px solid rgba(0,0,0,.35)",
+                                            boxShadow: "0 2px 6px rgba(0,0,0,.25)",
+                                            pointerEvents: "none",
+                                            animation: "popFloat 1.1s ease forwards",
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        +{claimFlashTop.toLocaleString()}
+                                    </span>
+                                )}
+                            </div>
+
                             <HudItem icon="/icons/gem.svg" text={String(gems)} />
+
                             <button
                                 onClick={async () => {
                                     await logout();
@@ -273,7 +263,8 @@ export default function Mine() {
                         </div>
                     }
 
-                    /* нижние плитки */
+
+                    /* нижняя навигация (без логики «собрать») */
                     bottomRow={[
                         <IconTile
                             key="home"
@@ -285,7 +276,16 @@ export default function Mine() {
                             floatIdle={false}
                             onClick={() => nav("/home")}
                         />,
-                        <DungeonSmartDungeonTile key="dungeon" />,
+                        <IconTile
+                            key="dungeon"
+                            title="ПОДЗЕМЕЛЬЕ"
+                            icon="/icons/dungeon.png"
+                            variant="large"
+                            labelPosition="below"
+                            iconSize="48px"
+                            floatIdle={false}
+                            onClick={() => nav("/mine")}
+                        />,
                         <IconTile
                             key="raids"
                             title="Рейды"
@@ -297,9 +297,110 @@ export default function Mine() {
                             onClick={() => nav("/raids")}
                         />,
                     ]}
+
+                    /* другие параметры сцены */
+                    height="100%"
+                    topOffsetPx={safeTopPx + 70}
+                    sideAlign="middle"
+                    sideLiftPx={165}
+                    bottomLiftPx={36}
                 />
 
-                {/* модалка выбора пола */}
+                {/* ▼ новый ряд кнопок поверх сцены, ЧУТЬ ВЫШЕ навигации */}
+                <div
+                    style={{
+                        position: "fixed",
+                        left: 0,
+                        bottom: 136, // подстрой под высоту навигации
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: 12,
+                        zIndex: 60,
+                        pointerEvents: "none",
+                    }}
+                >
+                    {/* Буфер */}
+                    <div
+                        style={{
+                            pointerEvents: "auto",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "8px 12px",
+                            borderRadius: 12,
+                            border: "1px solid rgba(255,255,255,0.18)",
+                            background: "rgba(0,0,0,0.55)",
+                            color: "#fff",
+                            fontWeight: 800,
+                            boxShadow: "0 2px 8px rgba(0,0,0,.35)",
+                        }}
+                    >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <img src="/icons/buffer.svg" alt="" style={{ width: 36, height: 36 }} />
+                            <span>
+                                Ресурсы<br /> {(mine?.buffer ?? 0).toLocaleString()}
+                                {typeof mine?.bufferCap === "number" ? ` / ${mine.bufferCap.toLocaleString()}` : ""}<br />
+                                
+                                
+                            </span>
+                        </span>
+                    </div>
+
+                    {/* Кнопка СобрАть */}
+                    <div style={{ position: "relative", pointerEvents: "auto" }}>
+                        <button
+                            onClick={async () => {
+                                const amount = mine?.buffer ?? 0;
+                                if (amount <= 0 || claiming) return;
+
+                                await claim();
+
+                                // верхние анимации:
+                                setClaimFlashTop(amount);
+                                setTimeout(() => setClaimFlashTop(null), 1100);
+                                setClaimGlow(true);
+                                setTimeout(() => setClaimGlow(false), 900);
+                            }}
+                            disabled={claiming || !mine || (mine.buffer ?? 0) <= 0}
+                            style={{
+                                padding: "10px 16px",
+                                borderRadius: 10,
+                                border: "1px solid rgba(255,255,255,0.2)",
+                                background: (mine && (mine.buffer ?? 0) > 0) ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.35)",
+                                color: "#fff",
+                                fontWeight: 800,
+                                boxShadow: "0 2px 8px rgba(0,0,0,.35)",
+                                cursor: (claiming || !mine || (mine.buffer ?? 0) <= 0) ? "default" : "pointer",
+                            }}
+                            title="Забрать из буфера в склад"
+                        >
+                            {claiming ? "..." : "Продать ресурсы"}
+                        </button>
+                    </div>
+
+                    {/* Кнопка Улучшения */}
+                    <button
+                        onClick={() => setUpOpen(true)}
+                        style={{
+                            pointerEvents: "auto",
+                            padding: "10px 16px",
+                            borderRadius: 10,
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            background: "rgba(0,0,0,0.65)",
+                            color: "#fff",
+                            fontWeight: 800,
+                            boxShadow: "0 2px 8px rgba(0,0,0,.35)",
+                        }}
+                    >
+                        Улучшения
+                    </button>
+                </div>
+
+
+                <UpgradesOverlay open={upOpen} onClose={() => setUpOpen(false)} />
+
+                {/* модалка выбора пола (если нужна) */}
                 <GenderSelectModal
                     open={needGenderModal}
                     onClose={() => {
@@ -313,6 +414,25 @@ export default function Mine() {
                     }}
                 />
             </>
+            <style>
+                {`
+@keyframes popFloat {
+  0%   { transform: translateY(0) scale(0.95); opacity: 0; }
+  10%  { transform: translateY(-4px) scale(1); opacity: 1; }
+  70%  { transform: translateY(-14px) scale(1); opacity: 1; }
+  100% { transform: translateY(-22px) scale(1); opacity: 0; }
+}
+
+/* Мягкое зелёное свечение числа "Склад" */
+@keyframes glowPulse {
+  0%   { color: #fff; text-shadow: none; }
+  15%  { color: #b9f6ca; text-shadow: 0 0 10px rgba(123,255,138,.85); }
+  70%  { color: #b9f6ca; text-shadow: 0 0 4px rgba(123,255,138,.45); }
+  100% { color: #fff; text-shadow: none; }
+}
+`}
+            </style>
+
         </SafeStage>
     );
 }
@@ -324,145 +444,5 @@ function HudItem({ icon, text }: { icon: string; text: string }) {
             <img src={icon} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />
             <span style={{ fontWeight: 700 }}>{text}</span>
         </span>
-    );
-}
-
-/** “умная” плитка Подземелья с плашкой ресурсов */
-function DungeonSmartDungeonTile() {
-    const nav = useNavigate();
-    const { mine, claim, claiming } = useMine(2000);
-
-    const [resOpen, setResOpen] = React.useState(false);
-    const [manual, setManual] = React.useState<null | boolean>(null);
-
-    const fmt = (n?: number | null) => (typeof n === "number" && isFinite(n) ? n.toLocaleString() : "0");
-
-    React.useEffect(() => {
-        if (!mine) return;
-        if (manual !== null) return;
-        const ratio = mine.bufferCap > 0 ? mine.buffer / mine.bufferCap : 0;
-        setResOpen(ratio >= 0.5);
-    }, [mine, manual]);
-
-    const toggle = () => {
-        setResOpen((o) => !o);
-        setManual((prev) => (prev === null ? true : !prev));
-    };
-
-    return (
-        <div style={{ position: "relative", display: "inline-block" }}>
-            <IconTile
-                title="ПОДЗЕМЕЛЬЕ"
-                icon="/icons/dungeon.png"
-                variant="compact"
-                iconSize="50px"
-                labelSize="clamp(11px,3vw,13px)"
-                labelOffsetY={-4}
-                uppercase
-                floatIdle={false}
-                onClick={() => nav("/mine")}
-            />
-
-            <button
-                onClick={toggle}
-                aria-label="Свернуть/развернуть ресурсы"
-                style={{
-                    position: "absolute",
-                    top: "50%",
-                    right: 25,
-                    transform: "translateY(-50%)",
-                    width: 26,
-                    height: 26,
-                    borderRadius: 999,
-                    border: "1px solid rgba(255,255,255,.25)",
-                    background: "rgba(0,0,0,.38)",
-                    display: "grid",
-                    placeItems: "center",
-                    cursor: "pointer",
-                    zIndex: 3,
-                    padding: 0,
-                }}
-            >
-                <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 12 12"
-                    style={{
-                        transform: resOpen ? "rotate(90deg)" : "rotate(-90deg)",
-                        transition: "transform .18s ease",
-                        display: "block",
-                    }}
-                >
-                    <path
-                        d="M4 2 L8 6 L4 10"
-                        fill="none"
-                        stroke="#fff"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </svg>
-            </button>
-
-            {mine && (
-                <div
-                    style={{
-                        position: "absolute",
-                        left: "50%",
-                        bottom: 70,
-                        transform: resOpen ? "translate(-50%, 0) scale(1)" : "translate(-50%, 12px) scale(0.92)",
-                        transformOrigin: "50% 100%",
-                        transition: "transform .28s cubic-bezier(.2,.8,.2,1), opacity .18s ease, left .18s ease",
-                        willChange: "transform",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "6px 8px",
-                        borderRadius: 10,
-                        background: "rgba(0,0,0,.45)",
-                        border: "1px solid rgba(255,255,255,.12)",
-                        backdropFilter: "blur(3px)",
-                        boxShadow: "0 4px 10px rgba(0,0,0,.25)",
-                        opacity: resOpen ? 1 : 0,
-                        pointerEvents: resOpen ? "auto" : "none",
-                        zIndex: 2,
-                        whiteSpace: "nowrap",
-                    }}
-                >
-                    <span
-                        style={{
-                            color: "#fff",
-                            fontWeight: 800,
-                            fontSize: 13,
-                            textShadow: "0 1px 2px rgba(0,0,0,.5)",
-                            minWidth: 86,
-                            textAlign: "center",
-                        }}
-                    >
-                        {fmt(mine?.buffer)} / {fmt(mine?.bufferCap)}
-                    </span>
-
-                    <button
-                        onClick={claim}
-                        disabled={claiming || !mine || (mine.buffer ?? 0) <= 0}
-                        style={{
-                            height: 26,
-                            padding: "0 12px",
-                            borderRadius: 999,
-                            border: "none",
-                            fontWeight: 800,
-                            fontSize: 12,
-                            color: "#0b1220",
-                            background: mine && (mine.buffer ?? 0) > 0 ? "#ffd54a" : "rgba(255,255,255,.25)",
-                            cursor: claiming || !mine || (mine.buffer ?? 0) <= 0 ? "default" : "pointer",
-                            boxShadow: "0 2px 6px rgba(0,0,0,.25)",
-                        }}
-                        title="Забрать из буфера в склад"
-                    >
-                        {claiming ? "..." : "СОБРАТЬ"}
-                    </button>
-                </div>
-            )}
-        </div>
     );
 }

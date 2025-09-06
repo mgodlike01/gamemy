@@ -11,9 +11,9 @@ generator client {
 model User {
   id                  String     @id @default(cuid())
   tgId                String     @unique
-  username    String?         // @username из Telegram
-  displayName String?         // красивое имя: first_name + last_name или username
-  photoUrl    String?  
+  username            String? // @username из Telegram
+  displayName         String? // красивое имя: first_name + last_name или username
+  photoUrl            String?
   avatarKey           String?
   xp                  Int        @default(0)
   level               Int        @default(1)
@@ -23,6 +23,8 @@ model User {
   raidEnergy          Int        @default(5)
   raidEnergyUpdatedAt DateTime   @default(now())
   hero                Hero?
+
+  upgrades UserUpgrade[]
 }
 
 model Hero {
@@ -34,10 +36,10 @@ model Hero {
   level     Int     @default(1)
   xp        Int     @default(0)
 
-  characterKey String?     // 'warrior' | 'rogue' (или свои ключи)
+  characterKey        String? // 'warrior' | 'rogue' (или свои ключи)
   characterSelectedAt DateTime?
 
-  gender           String?   // 'male' | 'female'
+  gender           String? // 'male' | 'female'
   genderSelectedAt DateTime?
 
   user User @relation(fields: [userId], references: [id])
@@ -81,4 +83,29 @@ model RaidLog {
 
   @@index([attackerId, createdAt])
   @@index([targetId, createdAt])
+}
+
+model UpgradeType {
+  id            String @id
+  title         String
+  icon          String
+  baseCost      Int
+  costK         Float  @default(1.35)
+  valuePerLevel Float  @default(0.02)
+  maxLevel      Int    @default(0)
+
+  userUpgrades UserUpgrade[]
+}
+
+model UserUpgrade {
+  userId String // ← тип совпадает с User.id
+  typeId String
+
+  level Int   @default(0)
+  value Float @default(0)
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type UpgradeType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, typeId])
 }

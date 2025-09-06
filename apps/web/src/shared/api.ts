@@ -1,6 +1,6 @@
-import axios from 'axios';
+п»їimport axios from 'axios';
 
-// ВНЕШНИЙ API URL (туннель/прод), локально можно переопределить .env
+// Р’РќР•РЁРќРР™ API URL (С‚СѓРЅРЅРµР»СЊ/РїСЂРѕРґ), Р»РѕРєР°Р»СЊРЅРѕ РјРѕР¶РЅРѕ РїРµСЂРµРѕРїСЂРµРґРµР»РёС‚СЊ .env
 const BASE_URL =
     import.meta.env.VITE_API_URL ||
     'https://trimly-upbeat-lungfish.cloudpub.ru';
@@ -32,7 +32,7 @@ async function getTelegramJwt(): Promise<string | null> {
 }
 
 async function getDevJwt(): Promise<string | null> {
-    // Разрешаем dev-токен только вне Telegram
+    // Р Р°Р·СЂРµС€Р°РµРј dev-С‚РѕРєРµРЅ С‚РѕР»СЊРєРѕ РІРЅРµ Telegram
     if (inTelegram()) return null;
     const { data } = await axios.get(`${BASE_URL}/auth/dev?tgId=DEV_USER`);
     localStorage.setItem(LS_JWT, data.token);
@@ -41,10 +41,10 @@ async function getDevJwt(): Promise<string | null> {
     return data.token;
 }
 
-// Публичная функция, которую можно вызывать где угодно (boot/хуки)
+// РџСѓР±Р»РёС‡РЅР°СЏ С„СѓРЅРєС†РёСЏ, РєРѕС‚РѕСЂСѓСЋ РјРѕР¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ РіРґРµ СѓРіРѕРґРЅРѕ (boot/С…СѓРєРё)
 export async function ensureAuth(): Promise<void> {
     try {
-        // Если мы в Telegram, а лежит dev-токен — сбросить
+        // Р•СЃР»Рё РјС‹ РІ Telegram, Р° Р»РµР¶РёС‚ dev-С‚РѕРєРµРЅ вЂ” СЃР±СЂРѕСЃРёС‚СЊ
         if (inTelegram() && localStorage.getItem('jwt_source') === 'dev') {
             localStorage.removeItem(LS_JWT);
             localStorage.removeItem('jwt_source');
@@ -58,20 +58,20 @@ export async function ensureAuth(): Promise<void> {
         if (token) {
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         } else {
-            // Фолбэк только для локалки (вне Telegram)
+            // Р¤РѕР»Р±СЌРє С‚РѕР»СЊРєРѕ РґР»СЏ Р»РѕРєР°Р»РєРё (РІРЅРµ Telegram)
             if (!inTelegram()) {
                 (api.defaults.headers.common as any)['x-tg-id'] = 'DEV_USER';
             }
         }
     } catch (e) {
         console.error('[ensureAuth] fail:', e);
-        // на всякий случай чистим и не блокируем UI
+        // РЅР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№ С‡РёСЃС‚РёРј Рё РЅРµ Р±Р»РѕРєРёСЂСѓРµРј UI
         localStorage.removeItem(LS_JWT);
         localStorage.removeItem('jwt_source');
     }
 }
 
-// (необязательно) Если где-то напрямую зовёте авторизацию через Telegram
+// (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ) Р•СЃР»Рё РіРґРµ-С‚Рѕ РЅР°РїСЂСЏРјСѓСЋ Р·РѕРІС‘С‚Рµ Р°РІС‚РѕСЂРёР·Р°С†РёСЋ С‡РµСЂРµР· Telegram
 export async function authByTelegram() {
     await ensureAuth();
     const { data } = await api.get('/auth/whoami');
@@ -86,8 +86,8 @@ export function clearAuth() {
     } catch { }
 }
 
-/** Полный выход: чистим токен и заново пробуем авторизоваться */
+/** РџРѕР»РЅС‹Р№ РІС‹С…РѕРґ: С‡РёСЃС‚РёРј С‚РѕРєРµРЅ Рё Р·Р°РЅРѕРІРѕ РїСЂРѕР±СѓРµРј Р°РІС‚РѕСЂРёР·РѕРІР°С‚СЊСЃСЏ */
 export async function logout() {
     clearAuth();
-    await ensureAuth(); // подтянет токен из Telegram initData или DEV (в браузере)
+    await ensureAuth(); // РїРѕРґС‚СЏРЅРµС‚ С‚РѕРєРµРЅ РёР· Telegram initData РёР»Рё DEV (РІ Р±СЂР°СѓР·РµСЂРµ)
 }

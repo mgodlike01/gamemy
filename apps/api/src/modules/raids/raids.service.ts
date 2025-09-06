@@ -40,32 +40,69 @@ export class RaidsService {
     }
 
     /** Список целей для рейда */
+    // src/modules/raids/raids.service.ts
     async findTargetsFor(tgId: string, limit = 5) {
+        // кто атакует (нужна энергия)
         const me = await this.getOrCreateUser(tgId);
-        const now = new Date();
+        const myEnergy = me.raidEnergy;
 
+        // берём кандидатов с запасом (чтобы потом отфильтровать) и НЕ берём самого себя
         const rows = await this.prisma.mineState.findMany({
             where: {
-                userId: { not: me.id },
-                buffer: { gt: 0 }, // показываем только тех, у кого есть что красть
+                userId: { not: me.id },   // не возвращаем самого игрока
+                buffer: { gt: 0 },        // есть что красть
             },
-            orderBy: [{ buffer: 'desc' }],
-            take: limit,
-            include: { user: true },
+            orderBy: [{ buffer: 'desc' }], // сверху — самые «жирные»
+            take: limit * 3,                // с запасом
+            select: {
+                userId: true,
+                buffer: true,
+                bufferCap: true,
+                ratePerHour: true,
+                shieldUntil: true,
+                user: {
+                    select: {
+                        tgId: true,
+                        displayName: true,
+                        username: true,
+                    },
+                },
+            },
         });
 
-        return rows.map(t => ({
-            userId: t.userId,
-            tgId: t.user?.tgId ?? 'UNKNOWN',
-            tag: (t.user?.displayName ?? t.user?.username ?? t.user?.tgId ?? 'unknown'),
-            buffer: t.buffer,
-            bufferCap: t.bufferCap,
-            ratePerHour: t.ratePerHour,
-            shieldUntil: t.shieldUntil,
-            isShielded: !!(t.shieldUntil && t.shieldUntil > now),
-            canAttack: !(t.shieldUntil && t.shieldUntil > now),
-        }));
+        const nowTs = Date.now();
+
+        const mapped = rows
+            .map((r) => {
+                const tg = r.user?.tgId ? String(r.user.tgId) : '';
+                const tag =
+                    r.user?.displayName ??
+                    r.user?.username ??
+                    tg ??
+                    'unknown';
+
+                const shieldTs = r.shieldUntil ? r.shieldUntil.getTime() : 0;
+                const isShielded = shieldTs > nowTs;
+
+                return {
+                    userId: r.userId,
+                    tgId: tg,
+                    tag,
+                    buffer: r.buffer,
+                    bufferCap: r.bufferCap,
+                    ratePerHour: r.ratePerHour,
+                    shieldUntil: r.shieldUntil ? r.shieldUntil.toISOString() : null,
+                    isShielded,
+                    canAttack: !!tg && !isShielded && myEnergy > 0, // ← ключевая логика
+                };
+            })
+            // выкидываем мусор без tgId
+            .filter((t) => !!t.tgId);
+
+        // режем до лимита и возвращаем
+        return mapped.slice(0, limit);
     }
+
 
     /** Атака */
     async attack(attackerTgId: string, targetTgId: string) {
@@ -190,4 +227,42 @@ export class RaidsService {
             };
         });
     }
+
+    // ВНИЗЕ файла, но внутри export class RaidsService { ... }
+    // Вернём статус энергии игрока
+    async getStatus(tgId: string) {
+        const user = await this.getOrCreateUser(tgId);
+        const mine = await this.prisma.mineState.findUnique({
+            where: { userId: user.id },
+            select: { warehouse: true, buffer: true, bufferCap: true, ratePerHour: true },
+        });
+
+        // 👇 ВРЕМЕННЫЙ ЛОГ ДЛЯ ДИАГНОСТИКИ
+        console.log('[RAIDS/status]', {
+            tgId,
+            userId: user.id,
+            warehouse: mine?.warehouse,
+            buffer: mine?.buffer,
+            bufferCap: mine?.bufferCap,
+            ratePerHour: mine?.ratePerHour,
+        });
+
+        return {
+            energy: user.raidEnergy,
+            energyMax: Number(process.env.RAID_ENERGY_MAX ?? 5),
+            regenFrom: user.raidEnergyUpdatedAt,
+            regenEveryMin: Number(process.env.RAID_ENERGY_REGEN_MIN ?? 30),
+            serverNow: new Date().toISOString(),
+
+            // 👇 добавили
+            myWarehouse: mine?.warehouse ?? 0,
+            mineStats: {
+                buffer: mine?.buffer ?? 0,
+                bufferCap: mine?.bufferCap ?? 0,
+                ratePerHour: mine?.ratePerHour ?? 0,
+            },
+        };
+    }
+
+
 }
