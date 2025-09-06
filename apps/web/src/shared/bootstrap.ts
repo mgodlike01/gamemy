@@ -1,6 +1,7 @@
 ﻿// Универсальные утилиты для предзагрузки
-
+import { initStableVh }  from '../shared/stableVh';
 // Картинки (спрайты/фоны)
+initStableVh();
 export async function preloadImages(
     urls: string[],
     onProgress?: (done: number, total: number) => void

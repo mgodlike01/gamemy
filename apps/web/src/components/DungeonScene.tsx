@@ -1,5 +1,6 @@
 import React from "react";
 
+
 type HeroParts = {
   body?: string;
   head?: string;
@@ -119,7 +120,7 @@ type Props = {
     };
 };
 
-const HERO_RATIO = 1.05;
+const HERO_RATIO = 1;
 
 /** Дефолтные прямоугольники слоёв (в процентах) — уже подогнано под ваши арты */
 const HERO_LAYOUT_DEFAULT: HeroLayout = {
@@ -130,7 +131,7 @@ const HERO_LAYOUT_DEFAULT: HeroLayout = {
 
   // руки ближе к корпусу
   armL:  { x: 24, y: 41.5, w: 23, h: 33, z: 4 },
-  armR:  { x: 51, y: 43.7, w: 24, h: 30, z: 2 },
+  armR:  { x: 52, y: 43.7, w: 24, h: 30, z: 2 },
 
   // ноги уже и ниже
   legL:  { x: 25, y: 72, w: 26, h: 26, z: 2 },
@@ -141,6 +142,32 @@ const HERO_LAYOUT_DEFAULT: HeroLayout = {
   weapon:{ x: 12, y: 38, w: 20, h: 36, z: 6 },
 };
 
+export const HERO_LAYOUT_THRONE: HeroLayout = {
+    armL
+        :
+        { x: 12, y: 47, w: 36.1, h: 26.9, z: 5 },
+armR
+        :
+        { x: 52, y: 46, w: 35.3, h: 22.3, z: 4 },
+body
+        :
+        { x: 28.5, y: 44, w: 42.5, h: 37.9, z: 3 },
+head
+        :
+        { x: 34, y: 21, w: 33.1, h: 30, z: 6 },
+helmet
+        :
+        { x: 36.5, y: 10, w: 24, h: 18, z: 7 },
+legL
+        :
+        { x: 25, y: 70, w: 30.6, h: 38.3, z: 2 },
+legR
+        :
+        { x: 46, y: 70, w: 33.1, h: 37.5, z: 2 },
+weapon
+        :
+        { x: 66, y: 55, w: 23.9, h: 70.8, z: 0 },
+};
 
 
 // Вставляем keyframes один раз
@@ -300,9 +327,46 @@ export function DungeonScene({
         ? "brightness(0.7) sepia(1) hue-rotate(-10deg) saturate(4)"
         : "none";
 
+    const _sceneOuter: React.CSSProperties = {
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+    };
+
+    // Соотношение сторон твоего фона (если арт 1080x1920 — это 9/16)
+    const SCENE_RATIO_W = 9;
+    const SCENE_RATIO_H = 16;
+
+    // Внутренняя «сцена» фикс. аспекта. Все слои должны быть её детьми.
+    const _sceneBox: React.CSSProperties = {
+        position: "relative",
+        aspectRatio: `${SCENE_RATIO_W} / ${SCENE_RATIO_H}`,
+        height: "100%",
+        maxWidth: `calc(100vh * ${SCENE_RATIO_W}/${SCENE_RATIO_H})`,
+        overflow: "hidden",
+    };
+
+    // Стиль для фоновой картинки СЦЕНЫ — важно: objectFit: 'contain'
+    const _sceneBgImg: React.CSSProperties = {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+        zIndex: 0,
+        pointerEvents: "none",
+        userSelect: "none",
+    };
+
   return (
     <div
-          style={{ position: "absolute", inset: 0, height, overflow: "hidden", ...style }}>
+          style={{ position: "absolute", inset: 0, height: "var(--app-vh)", overflow: "hidden", ...style }}>
     
       {/* BACKGROUND */}
       <img

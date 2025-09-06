@@ -3,7 +3,8 @@ import { IconTile } from '../components/IconTile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useProfile } from '../shared/useProfile';
 import { api } from '../shared/api';
-import { DungeonScene } from '../components/DungeonScene';
+import HeroLayoutCalibrator from "../components/HeroLayoutCalibrator";
+import { DungeonScene, HERO_LAYOUT_THRONE } from '../components/DungeonScene';
 import GenderSelectModal from '../components/GenderSelectModal';
 
 import { useMine } from '../shared/useMine';
@@ -180,31 +181,37 @@ export default function Home() {
     ]) || '/avatars/placeholder.png';
 
   // --- наборы слоёв для героя ---
-  const rigMale = {
-    body: '/hero_parts/male/body.png',
-    head: '/hero_parts/male/head.png',
-    armL: '/hero_parts/male/arm_left.png',
-    armR: '/hero_parts/male/arm_right.png',
-    legL: '/hero_parts/male/leg_left.png',
-    legR: '/hero_parts/male/leg_right.png',
-  };
-  const rigFemale = {
-    body: '/hero_parts/female/body.png',
-    head: '/hero_parts/female/head.png',
-    armL: '/hero_parts/female/arm_left.png',
-    armR: '/hero_parts/female/arm_right.png',
-    legL: '/hero_parts/female/leg_left.png',
-    legR: '/hero_parts/female/leg_right.png',
-  };
-  const useFemale = (profile?.gender ?? (profile as any)?.hero?.gender) === 'female';
-  const heroParts = useFemale ? rigFemale : rigMale;
+    // --- наборы слоёв для героя (поза "throne") ---
+    const rigThroneMale = {
+        body: '/hero_throne/male/body.png',
+        head: '/hero_throne/male/head.png',
+        armL: '/hero_throne/male/arm_left.png',
+        armR: '/hero_throne/male/arm_right.png',
+        legL: '/hero_throne/male/leg_left.png',
+        legR: '/hero_throne/male/leg_right.png',
+        weapon: '/hero_throne/male/sword.png',
+
+    };
+    const rigThroneFemale = {
+        torso: '/hero_throne/female/torso.png',
+        head: '/hero_throne/female/head.png',
+        armL: '/hero_throne/female/arm_left.png',
+        armR: '/hero_throne/female/arm_right.png',
+        legL: '/hero_throne/female/leg_left.png',
+        legR: '/hero_throne/female/leg_right.png',
+        weapon: '/hero_throne/female/sword.png',
+
+    };
+    const useFemale = (profile?.gender ?? (profile as any)?.hero?.gender) === 'female';
+    const heroParts = useFemale ? rigThroneFemale : rigThroneMale;
+
 
   // иконки HUD
   const energyIcon = '/icons/energy.png';
   const coinIcon = '/icons/coin.svg';
   const gemIcon = '/icons/gem.svg';
 
-
+    const [layout, setLayout] = React.useState(HERO_LAYOUT_THRONE);
 
   return (
     <SafeStage baseWidth={BASE_W} baseHeight={BASE_H} offsetY={0}>
@@ -213,18 +220,21 @@ export default function Home() {
 
         <DungeonScene
           bg="/scenes/home_bg.png"
-          fg="/scenes/dungeon_fg.png"
+
 
           /** передаём слои героя */
-          heroParts={heroParts}
-          heroScale={1.15}         // <- слегка увеличен
-          heroBottomPct={18}
+                  heroParts={heroParts}
+                  heroLayout={HERO_LAYOUT_THRONE}
+          heroScale={0.7}         // <- слегка увеличен
+          heroBottomPct={28}
           height="100%"
+                  heroLayout={layout}
+          armsWave={false}
+          heroIdle={false}
 
-          armsWave={true}
-  armSwingDeg={2}
-  armLiftPx={1}
-  armWaveMs={2500}
+          armSwingDeg={2}
+          armLiftPx={1}
+          armWaveMs={2500}
 
           /** чтобы не залезало под интерфейс Телеграма */
           topOffsetPx={safeTopPx + 70}
@@ -233,7 +243,7 @@ export default function Home() {
           sideAlign="middle"
           sideLiftPx={165}
                   bottomLiftPx={36}
-                  heroOffsetY={-102}   // вверх
+                  heroOffsetY={8}   // вверх
                   
 
           /** ЛЕВЫЙ ВЕРХ — аватар/имя, кликабельно в профиль */
@@ -358,6 +368,9 @@ export default function Home() {
 
                   ]}
               />
+              
+
+
 
         {/* модалка выбора пола (если не выбран) */}
         <GenderSelectModal
@@ -376,6 +389,7 @@ export default function Home() {
     </SafeStage>
   );
 }
+
 
 /** маленький элемент HUD: иконка + текст */
 function HudItem({ icon, text }: { icon: string; text: string }) {
